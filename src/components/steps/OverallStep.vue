@@ -23,7 +23,12 @@ const skillTable = computed(() => {
   skillGroupOrder.forEach((groupName) => {
     const rows = [];
     (skillGroups[groupName] || []).forEach((name) => {
-      if (name === '自定义') return;
+      if (name === '自定义') {
+        // 自定义技能：显示用户填写的自定义技能名
+        const customChildren = (character.groupedOrder['自定义'] || []).filter((c) => c);
+        customChildren.forEach((child) => rows.push({ label: child, key: makeSkillKey('自定义', child) }));
+        return;
+      }
       const sk = getSkill(name);
       if (sk && sk.group && sk.group.skills.length) {
         const children = (character.groupedOrder[name] || []).filter((c) => c);

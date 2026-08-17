@@ -7,12 +7,18 @@ function fmtKey(key) {
   return key.replace('(', '（').replace(')', '）').replace(/Ω/g, '');
 }
 
+// 展示名：自定义技能直接显示技能名，其余显示完整键（父（子））
+function displayName(e) {
+  if (e.group === '自定义') return e.name;
+  return fmtKey(e.key);
+}
+
 // 收集所有已分配技能
 const entries = computed(() => {
   const list = [];
   skills.forEach((sk) => {
     if (!sk.name) return;
-    if (sk.group && sk.group.skills.length) {
+    if (sk.group && (sk.group.skills.length || sk.name === '自定义')) {
       (character.groupedOrder[sk.name] || []).forEach((child) => {
         const key = `${sk.name}(${child})`;
         const a = getAllocation(key);
@@ -45,7 +51,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
               <thead><tr><th>技能</th><th>基础</th><th>职业</th><th>总值</th></tr></thead>
               <tbody>
                 <tr v-for="e in proList" :key="e.key">
-                  <td>{{ fmtKey(e.key) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
+                  <td>{{ displayName(e) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
                   <td>{{ skillBase(e.key, character.attributes) }}</td>
                   <td>{{ getAllocation(e.key).pro || 0 }}</td>
                   <td class="right">{{ skillValue(e.key) }}</td>
@@ -60,7 +66,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
               <thead><tr><th>技能</th><th>基础</th><th>业余</th><th>总值</th></tr></thead>
               <tbody>
                 <tr v-for="e in interestList" :key="e.key">
-                  <td>{{ fmtKey(e.key) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
+                  <td>{{ displayName(e) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
                   <td>{{ skillBase(e.key, character.attributes) }}</td>
                   <td>{{ getAllocation(e.key).interest || 0 }}</td>
                   <td class="right">{{ skillValue(e.key) }}</td>
@@ -77,7 +83,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
             <thead><tr><th>技能</th><th>基础</th><th>经验包</th><th>成长</th><th>总值</th></tr></thead>
             <tbody>
               <tr v-for="e in otherList" :key="e.key">
-                <td>{{ fmtKey(e.key) }}</td>
+                <td>{{ displayName(e) }}</td>
                 <td>{{ skillBase(e.key, character.attributes) }}</td>
                 <td class="danger">{{ getAllocation(e.key).package || 0 }}</td>
                 <td>{{ getAllocation(e.key).growth || 0 }}</td>

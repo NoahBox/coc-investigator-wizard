@@ -39,6 +39,8 @@ const importSteps = [
   { id: 'basic', label: '基本信息' },
   { id: 'growth', label: '幕间成长' },
   { id: 'derived', label: '属性与衍生' },
+  { id: 'proskills', label: '职业技能' },
+  { id: 'interestskills', label: '业余技能' },
   { id: 'background', label: '背景故事' },
   { id: 'weapons', label: '武器' },
   { id: 'items', label: '物品与资产' },

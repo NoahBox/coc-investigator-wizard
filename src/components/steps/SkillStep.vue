@@ -28,6 +28,7 @@ const GROUP_DEFAULTS = {
   技艺: ['', '', ''],
   生存: ['', '', ''],
   驾驶: [''],
+  自定义: ['', '', ''],
 };
 
 onMounted(() => {
@@ -40,6 +41,11 @@ onMounted(() => {
 function childSuggestions(groupName) {
   const sk = getSkill(groupName);
   return sk?.group?.skills?.map(s => s.name) || [];
+}
+// 子技能输入框占位文字
+function childPlaceholder(groupName) {
+  if (groupName === '自定义') return '自定义技能名';
+  return groupName + '具体类别';
 }
 
 function getChildren(groupName) {
@@ -59,14 +65,19 @@ function removeChild(groupName, idx) {
   saveCharacter();
 }
 
-// 点数操作（带剩余点约束）
+// 点数操作（带剩余点约束，老卡模式无视上限）
 function valOf(key) {
   return getAllocation(key)[allocField.value] || 0;
 }
+const freeMode = computed(() => !!character.legacyMode);
 function setVal(key, v) {
-  const cur = valOf(key);
-  const max = Math.max(0, totalPoints.value - usedPoints.value + cur);
-  const final = Math.max(0, Math.min(Math.round(v || 0), max));
+  let final = Math.round(Number(v) || 0);
+  if (final < 0) final = 0;
+  if (!freeMode.value) {
+    const cur = valOf(key);
+    const max = Math.max(0, totalPoints.value - usedPoints.value + cur);
+    final = Math.min(final, max);
+  }
   setAllocation(key, { [allocField.value]: final });
 }
 function bump(key, delta) { setVal(key, valOf(key) + delta); }
@@ -114,7 +125,8 @@ function toggleCustomSkill(key) {
         <h2>{{ isPro ? '职业技能分配' : '业余技能分配' }}</h2>
         <span class="sub">{{ isPro ? 'Occupation Skills' : 'Personal Interest Skills' }}</span>
         <span class="spacer"></span>
-        <span class="small">剩余点数 <b class="accent">{{ remaining }}</b> / {{ totalPoints }}</span>
+        <span v-if="freeMode" class="small accent">老卡模式 · 不限点数</span>
+        <span v-else class="small">剩余点数 <b class="accent">{{ remaining }}</b> / {{ totalPoints }}</span>
       </div>
       <div class="card-body">
         <!-- 分配模式（仅职业） -->
@@ -225,7 +237,7 @@ function toggleCustomSkill(key) {
               </div>
               <div v-for="(child, ci) in getChildren(name)" :key="ci" class="skill-row group-child">
                 <span class="s-name">
-                  <input class="inp child-inp" :list="'ch-' + name" :value="child" :placeholder="name + '具体类别'" @input="setChildName(name, ci, $event.target.value)" />
+                  <input class="inp child-inp" :list="'ch-' + name" :value="child" :placeholder="childPlaceholder(name)" @input="setChildName(name, ci, $event.target.value)" />
                   <datalist :id="'ch-' + name">
                     <option v-for="s in childSuggestions(name)" :key="s" :value="s"></option>
                   </datalist>

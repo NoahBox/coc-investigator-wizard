@@ -69,7 +69,7 @@ export function buildStString() {
   skills.forEach((sk) => {
     const name = sk.name;
     if (!name) return; // 自定义技能占位
-    if (sk.group && sk.group.skills.length) {
+    if (sk.group && (sk.group.skills.length || name === '自定义')) {
       // 分组技能：输出每个子技能
       const children = character.groupedOrder[name] || [];
       children.forEach((childName) => {

@@ -158,6 +158,16 @@ function removeAvatar() {
             <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" @click="character.era = e.v; saveCharacter()">{{ e.label }}</span>
           </div>
         </div>
+
+        <div class="mt-8">
+          <label class="lbl">老卡模式</label>
+          <label class="switch" style="margin-top:9px">
+            <input type="checkbox" v-model="character.legacyMode" @change="saveCharacter" />
+            <span class="track"></span>
+            <span class="small dim">{{ character.legacyMode ? '已开启' : '未开启' }}</span>
+          </label>
+          <p class="hint mt-8">开启后，属性点与技能点分配可无视点数上限，直接输入任意点数。</p>
+        </div>
       </div>
     </div>
 

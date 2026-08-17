@@ -101,12 +101,37 @@ function clickAttr(attrKey) {
 const pointBuyUsed = computed(() => ATTR_KEYS.reduce((s, k) => s + (character.attributes[k] || 0), 0));
 const pointBuyRemaining = computed(() => (character.pointTotal || POINT_BUY_DEFAULT) - pointBuyUsed.value);
 
+// 是否无视点数上限（老卡模式）
+const freeMode = computed(() => !!character.legacyMode);
+
+function clampAttr(n) {
+  return Math.max(0, Math.min(ATTR_MAX, n));
+}
+
 function adjustAttr(k, delta) {
   const cur = character.attributes[k] || 0;
   let next = cur + delta;
-  if (delta > 0 && pointBuyRemaining.value < delta) return;
-  next = Math.max(0, Math.min(ATTR_MAX, next));
-  character.attributes[k] = next;
+  if (!freeMode.value && delta > 0 && pointBuyRemaining.value < delta) return;
+  character.attributes[k] = clampAttr(next);
+  saveCharacter();
+}
+
+function setAttrValue(k, v) {
+  // 空输入 → 清空该属性
+  if (v === '' || v == null) {
+    character.attributes[k] = null;
+    saveCharacter();
+    return;
+  }
+  const n = Math.round(Number(v));
+  if (Number.isNaN(n)) return;
+  let next = Math.max(0, n);
+  if (!freeMode.value) {
+    const cur = character.attributes[k] || 0;
+    const max = cur + pointBuyRemaining.value;
+    next = Math.min(next, max);
+  }
+  character.attributes[k] = clampAttr(next);
   saveCharacter();
 }
 
@@ -129,14 +154,15 @@ function attrAdjustment(k) { return 0; }
           <div class="row mb-16">
             <label class="lbl grow" style="margin:0">点数池</label>
             <input class="inp" style="width:100px" type="number" v-model.number="character.pointTotal" @input="saveCharacter" />
-            <span class="small dim">剩余 <b class="accent">{{ pointBuyRemaining }}</b></span>
+            <span v-if="freeMode" class="small accent">老卡模式 · 不限点数</span>
+            <span v-else class="small dim">剩余 <b class="accent">{{ pointBuyRemaining }}</b></span>
           </div>
           <div class="attr-grid">
             <div v-for="k in ATTR_KEYS" :key="k" class="attr-pb card pad">
               <div class="attr-name serif">{{ ATTR_LABELS[k] }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
               <div class="row mt-8">
                 <button class="btn sm" @click="adjustAttr(k, -5)">−5</button>
-                <span class="attr-val">{{ character.attributes[k] ?? '—' }}</span>
+                <input class="attr-inp" type="number" :value="character.attributes[k] ?? ''" placeholder="—" @input="setAttrValue(k, $event.target.value)" />
                 <button class="btn sm" @click="adjustAttr(k, 5)">+5</button>
               </div>
               <div class="small faint center mt-8">{{ ATTR_MIN }}–{{ ATTR_MAX }}</div>
@@ -204,6 +230,12 @@ function attrAdjustment(k) { return 0; }
 .attr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .attr-pb, .attr-slot { text-align: center; }
 .attr-val { font-size: 1.5rem; font-family: Georgia, serif; min-width: 52px; }
+.attr-inp {
+  width: 60px; text-align: center; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; padding: 5px;
+  font: inherit; font-size: 1.2rem; font-family: Georgia, serif;
+}
+.attr-inp:focus { border-color: var(--accent); outline: none; }
 .attr-pb .row { justify-content: center; }
 .drag-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; align-items: start; }
 .pool-cards { display: flex; flex-wrap: wrap; gap: 8px; }

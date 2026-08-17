@@ -139,4 +139,5 @@ skills.forEach(s => skillMap.set(s.name, s));
 export function getSkill(name) { return skillMap.get(name); }
 
 // 需要填写具体类别的技能（子技能分组）
-export const groupedSkillNames = skills.filter(s => s.group && s.group.skills.length).map(s => s.name);
+// 「自定义」的分组 skills 为空，但同样按分组技能处理（用户自由填写自定义技能名）
+export const groupedSkillNames = skills.filter(s => s.group && (s.group.skills.length || s.name === '自定义')).map(s => s.name);

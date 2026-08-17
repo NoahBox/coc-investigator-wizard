@@ -66,6 +66,7 @@ export function createEmptyCharacter() {
     // 本职技能解析后的选择结果 { 任选槽位 index: 选中的技能key }
     jobChoice: {},
     skillMode: 'strict',
+    legacyMode: false,
     proSkillPoints: 0, interestSkillPoints: 0,
     creditRating: null,
     weapons: [],
@@ -324,11 +325,15 @@ export function usedPackagePoints() {
   return sum;
 }
 
-// 经验包对象
-export const currentPackage = computed(() => getPackage(character.packageId));
+// 经验包对象（关闭开关后视为未启用）
+export const currentPackage = computed(() => {
+  if (!character.packageEnabled) return null;
+  return getPackage(character.packageId);
+});
 
 // 经验包技能点影响
 export function packageAdjust(key) {
+  if (!character.packageEnabled) return 0;
   return character.packageSkillPoints[key] || 0;
 }
 
