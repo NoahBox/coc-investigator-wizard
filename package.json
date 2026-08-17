@@ -1,0 +1,25 @@
+{
+  "name": "coc-investigator-wizard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "克苏鲁的呼唤 COC 7版 调查员角色卡交互式创建工具",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cropperjs": "^1.6.2",
+    "lz-string": "^1.5.0",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "html2canvas": "^1.4.1",
+    "jsdom": "^30.0.1",
+    "jspdf": "^2.5.2",
+    "vite": "^6.0.7",
+    "vite-plugin-singlefile": "^2.0.3"
+  }
+}
