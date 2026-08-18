@@ -19,11 +19,10 @@ const rangeText = computed(() => `信用评级范围 ${creditRange.value[0]}–$
       </div>
       <div class="card-body">
         <table class="grid">
-          <thead><tr><th>物品</th><th></th></tr></thead>
           <tbody>
             <tr v-for="(row, i) in character.items" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" placeholder="物品名称" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.items, i)">×</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.items, i)">⨉</button></td>
             </tr>
           </tbody>
         </table>
@@ -53,14 +52,13 @@ const rangeText = computed(() => `信用评级范围 ${creditRange.value[0]}–$
             <div class="small dim">{{ livingStandard.desc }}</div>
           </div>
         </div>
-        <p class="hint mb-16">现金与资产按信用评级自动计算，默认美元；根据国家自动换算（中国→人民币/银元，日本→日元）。</p>
 
         <table class="grid">
           <thead><tr><th>资产</th><th></th></tr></thead>
           <tbody>
             <tr v-for="(row, i) in character.assetsRows" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" placeholder="资产名称（如房产、车辆）" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.assetsRows, i)">×</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.assetsRows, i)">⨉</button></td>
             </tr>
           </tbody>
         </table>

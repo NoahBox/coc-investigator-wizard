@@ -272,6 +272,7 @@ html.light .step-link.active { color: var(--accent-strong); }
 .grow { flex: 1; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; }
 .spacer { flex: 1; }
 
@@ -309,5 +310,5 @@ textarea.inp { min-height: 72px; resize: vertical; }
 .empty { color: var(--text-faint); text-align: center; padding: 30px; font-style: italic; }
 
 @media (max-width: 860px) {
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
 }

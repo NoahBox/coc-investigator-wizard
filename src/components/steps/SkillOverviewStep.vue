@@ -54,7 +54,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
                   <td>{{ displayName(e) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
                   <td>{{ skillBase(e.key, character.attributes) }}</td>
                   <td>{{ getAllocation(e.key).pro || 0 }}</td>
-                  <td class="right">{{ skillValue(e.key) }}</td>
+                  <td>{{ skillValue(e.key) }}</td>
                 </tr>
                 <tr v-if="proList.length === 0"><td colspan="4" class="empty">尚未分配职业技能点</td></tr>
               </tbody>
@@ -69,7 +69,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
                   <td>{{ displayName(e) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
                   <td>{{ skillBase(e.key, character.attributes) }}</td>
                   <td>{{ getAllocation(e.key).interest || 0 }}</td>
-                  <td class="right">{{ skillValue(e.key) }}</td>
+                  <td>{{ skillValue(e.key) }}</td>
                 </tr>
                 <tr v-if="interestList.length === 0"><td colspan="4" class="empty">尚未分配业余技能点</td></tr>
               </tbody>
@@ -87,7 +87,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
                 <td>{{ skillBase(e.key, character.attributes) }}</td>
                 <td class="danger">{{ getAllocation(e.key).package || 0 }}</td>
                 <td>{{ getAllocation(e.key).growth || 0 }}</td>
-                <td class="right">{{ skillValue(e.key) }}</td>
+                <td>{{ skillValue(e.key) }}</td>
               </tr>
             </tbody>
           </table>

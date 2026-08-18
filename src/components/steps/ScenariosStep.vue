@@ -20,7 +20,7 @@ function removeRow(i) { character.scenarios.splice(i, 1); saveCharacter(); }
             <tr v-for="(row, i) in character.scenarios" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" placeholder="剧本名称" /></td>
               <td><input v-model="row.time" @input="saveCharacter" placeholder="时间" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)">×</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)">⨉</button></td>
             </tr>
           </tbody>
         </table>

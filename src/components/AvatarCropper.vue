@@ -70,7 +70,7 @@ function onConfirm() {
 <style scoped>
 .cropper-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 1);
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
 }

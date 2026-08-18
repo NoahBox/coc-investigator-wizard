@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { character, saveCharacter, applyAgeAdjustment, packageSanLoss } from '../../store.js';
+import { character, saveCharacter, applyAgeAdjustment, packageSanReduction } from '../../store.js';
 import { roll } from '../../data/rules.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
 
@@ -25,7 +25,7 @@ function setLuck(v) {
 
 const canAge = computed(() => ATTR_KEYS.every(k => character.attributes[k] != null && character.attributes[k] > 0) && character.age);
 
-const sanAdj = computed(() => packageSanLoss());
+const sanAdj = computed(() => packageSanReduction());
 </script>
 
 <template>
@@ -60,7 +60,7 @@ const sanAdj = computed(() => packageSanLoss());
         </div>
 
         <div v-if="sanAdj" class="mt-16">
-          <p class="warn-text">⚠ 经验包影响：理智值 SAN <span class="adj">(−{{ sanAdj }})</span></p>
+          <p class="warn-text">⚠ 经验包影响：当前理智值 SAN 减少 <span class="adj">−{{ sanAdj }}</span>（已计入最终理智值）</p>
         </div>
 
         <div class="mt-16">

@@ -21,11 +21,10 @@ const sections = [
       </div>
       <div class="card-body">
         <table class="grid">
-          <thead><tr><th>内容</th><th></th></tr></thead>
           <tbody>
             <tr v-for="(row, i) in s.list()" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" :placeholder="s.ph" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(s.list(), i)">×</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(s.list(), i)">⨉</button></td>
             </tr>
           </tbody>
         </table>

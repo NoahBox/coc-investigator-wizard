@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import {
-  character, derived, getAllocation, skillValue, skillBase, makeSkillKey,
+  character, derived, getAllocation, skillValue, skillBase, makeSkillKey, packageAdjust,
   creditRatingValue, livingStandard, cashInfo, currency, isOccupationSkill,
 } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
@@ -59,7 +59,7 @@ function skillRow(key) {
     base,
     pro: a.pro || 0,
     interest: a.interest || 0,
-    growth: a.growth || 0,
+    growth: (a.growth || 0) + packageAdjust(key),
     total,
     showTotal: total > 0 && (total !== base || !!a.pro),
   };

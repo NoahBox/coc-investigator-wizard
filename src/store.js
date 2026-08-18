@@ -3,7 +3,7 @@
 // ============================================================
 import { reactive, computed } from 'vue';
 import { skills, getSkill, groupedSkillNames } from './data/skills.js';
-import { getJob } from './data/jobs.js';
+import { getJob, EXP_BOOKS } from './data/jobs.js';
 import {
   ATTR_KEYS, generateRandomAttributes, modifyAttributesByAge,
   computeDerived, computeProSkillPoints, computeInterestSkillPoints,
@@ -54,7 +54,7 @@ export function createEmptyCharacter() {
     customSkills: [], customPointFormula: 'edu4', customWealth: [9, 30],
     ageModifier: true,
     packageEnabled: false, packageId: null,
-    packageSkillPoints: {}, packageRolls: {},
+    packageSkillPoints: {}, packageRolls: {}, believer: false,
     attrMethod: 'pointbuy', pointTotal: 460,
     attributes: emptyAttributes(),
     attrPool: [],
@@ -67,6 +67,8 @@ export function createEmptyCharacter() {
     jobChoice: {},
     skillMode: 'strict',
     legacyMode: false,
+    // 扩展书职业显示开关：键为 EXP_BOOKS，值为是否显示该来源职业（默认全部显示）
+    expBooks: Object.fromEntries(EXP_BOOKS.map(b => [b, false])),
     proSkillPoints: 0, interestSkillPoints: 0,
     creditRating: null,
     weapons: [],
@@ -116,6 +118,9 @@ function normalize(data) {
   merged.contacts = data?.contacts || [];
   merged.relations = data?.relations || [];
   merged.scenarios = data?.scenarios || [];
+  // 扩展书职业显示开关：确保全部键存在，缺省视为显示（true）
+  const books = data?.expBooks || {};
+  merged.expBooks = Object.fromEntries(EXP_BOOKS.map(b => [b, books[b] === true]));
   return merged;
 }
 
@@ -161,6 +166,7 @@ export const derived = computed(() => {
   const over = character.derivedOverrides || {};
   const mythos = skillValue('克苏鲁神话');
   const sanMax = over.sanMax != null ? over.sanMax : Math.max(0, 99 - mythos);
+  const sanReduce = packageSanReduction();
   return {
     ...base,
     hpMax: over.hpMax != null ? over.hpMax : base.hp,
@@ -168,7 +174,7 @@ export const derived = computed(() => {
     sanMax,
     hp: over.hp != null ? over.hp : base.hp,
     mp: over.mp != null ? over.mp : base.mp,
-    san: over.san != null ? over.san : base.san,
+    san: over.san != null ? over.san : Math.max(0, base.san - sanReduce),
     luc: over.luc != null ? over.luc : a.luc,
   };
 });
@@ -294,13 +300,14 @@ export function getAllocation(key) {
 export function skillValue(key) {
   const base = skillBase(key, character.attributes);
   const a = getAllocation(key);
-  return base + (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + (a.package || 0);
+  return base + (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + packageAdjust(key);
 }
 export function skillValueText(key) {
   const base = skillBase(key, character.attributes);
   const a = getAllocation(key);
-  const total = base + (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + (a.package || 0);
-  return { base, total, ...a };
+  const pkg = packageAdjust(key);
+  const total = base + (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + pkg;
+  return { base, total, ...a, package: pkg };
 }
 export function setAllocation(key, patch) {
   const cur = { ...getAllocation(key), ...patch };
@@ -345,15 +352,31 @@ export function packageSanLoss() {
   return r != null ? r : 0;
 }
 
+// 经验包对「当前理智值(SAN)」的总减少量（计入最终数值）
+// - 非神话包：减少 sanLoss 骰值
+// - 神话包且「相信者」：减少神话技能数值
+export function packageSanReduction() {
+  if (!character.packageEnabled || !currentPackage.value) return 0;
+  const p = currentPackage.value;
+  if (!p.mythos) {
+    const r = character.packageRolls.sanLoss;
+    return r != null ? r : 0;
+  }
+  if (character.believer) {
+    const m = character.packageRolls.mythos;
+    return m != null ? m : 0;
+  }
+  return 0;
+}
+
 // 生活水平/现金
 export const creditRatingValue = computed(() => {
   // 优先取「信用评级」技能的实际值（基础值 0 + 已分配的职业点）
   const cr = skillValue('信用评级');
   if (cr > 0) return cr;
   if (character.creditRating != null) return character.creditRating;
-  // 未分配时回退到信用范围中间值
-  const [min, max] = creditRange.value;
-  return Math.round((min + max) / 2);
+  // 未分配时回退到0
+  return 0;
 });
 export const livingStandard = computed(() => getLivingStandard(creditRatingValue.value));
 export const cashInfo = computed(() => getCash(creditRatingValue.value, character.country, character.era));

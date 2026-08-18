@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { version } from '../package.json';
 import { theme, toggleTheme, applyTheme, newCharacter, importCharacter } from './store.js';
 import HomeView from './components/HomeView.vue';
 import WizardView from './components/WizardView.vue';
@@ -35,6 +36,7 @@ function goHome() {
         </div>
       </div>
       <div class="spacer"></div>
+      <span class="version-badge" title="当前版本">v{{ version }}</span>
       <label class="switch" title="深色 / 浅色模式">
         <input type="checkbox" :checked="theme.dark" @change="toggleTheme" />
         <span class="track"></span>
@@ -65,5 +67,16 @@ function goHome() {
 .brand-title { font-family: Georgia, serif; font-size: 1.15rem; color: var(--text); letter-spacing: 0.08em; }
 .brand-sub { font-size: 0.62rem; color: var(--text-faint); letter-spacing: 0.18em; }
 .spacer { flex: 1; }
+.version-badge {
+  flex: none;
+  font-family: Georgia, serif;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
 main { flex: 1; }
 </style>

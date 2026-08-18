@@ -3,7 +3,7 @@
 // 格式：LZString.compressToEncodedURIComponent(JSON.stringify({ pc, viewData }))
 // ============================================================
 import LZString from 'lz-string';
-import { createEmptyCharacter, character, occupationSkills, totalProPoints, totalInterestPoints } from './store.js';
+import { createEmptyCharacter, character, occupationSkills, totalProPoints, totalInterestPoints, packageAdjust, packageSanReduction } from './store.js';
 import { getJob } from './data/jobs.js';
 import { computeDerived } from './data/rules.js';
 
@@ -167,7 +167,7 @@ export function toSaiko() {
     const point = {};
     if (a.pro) point.p = a.pro;
     if (a.interest) point.i = a.interest;
-    const growth = (a.growth || 0) + (a.package || 0); // 经验包点合并到成长点
+    const growth = (a.growth || 0) + packageAdjust(key); // 幕间成长 + 经历包加成，合并为成长点
     if (growth) point.g = growth;
     if (Object.keys(point).length) {
       skillPoints.push([mineSkillKeyToSaiko(key, char.groupedOrder), point]);
@@ -178,7 +178,7 @@ export function toSaiko() {
 
   const hpMax = over.hpMax ?? Math.floor(((attrs.con || 0) + (attrs.siz || 0)) / 10);
   const mpMax = over.mpMax ?? Math.floor((attrs.pow || 0) / 5);
-  const sanNow = over.san ?? (attrs.pow || 0);
+  const sanNow = over.san ?? Math.max(0, (attrs.pow || 0) - packageSanReduction());
 
   const pc = {
     name: char.name || '',

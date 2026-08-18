@@ -22,7 +22,7 @@ function removeRow(i) { character.relations.splice(i, 1); saveCharacter(); }
               <td><input v-model="row.player" @input="saveCharacter" placeholder="玩家" /></td>
               <td><input v-model="row.job" @input="saveCharacter" placeholder="职业" /></td>
               <td><input v-model="row.relation" @input="saveCharacter" placeholder="与你的关系" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)">×</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)">⨉</button></td>
             </tr>
           </tbody>
         </table>

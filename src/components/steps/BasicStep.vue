@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { character, saveCharacter, currentJob, splitSkillKey } from '../../store.js';
-import { jobGroups } from '../../data/jobs.js';
+import { jobGroups, EXP_BOOKS, getExpBooks } from '../../data/jobs.js';
 import { ATTR_LABELS } from '../../data/rules.js';
 import AvatarCropper from '../AvatarCropper.vue';
 
@@ -11,6 +11,17 @@ const eras = [
   { v: '1920s', label: '1920s' },
 ];
 const customCountry = ref('');
+
+// 按扩展书开关过滤职业列表：关闭某来源的开关后，该来源（及同时带有该标记）的职业不再出现在下拉框
+const filteredJobGroups = computed(() => {
+  return jobGroups
+    .map(([group, list]) => [group, list.filter((j) => {
+      const books = getExpBooks(j);
+      if (!books.length) return true; // 基础职业始终显示
+      return books.every((b) => character.expBooks[b] !== false);
+    })])
+    .filter(([, list]) => list.length > 0);
+});
 
 function onCountry(c) {
   if (countries.includes(c)) character.country = c;
@@ -87,51 +98,54 @@ function removeAvatar() {
     <div class="card">
       <div class="card-title"><h2>调查员基本信息</h2><span class="sub">Investigator Basics</span></div>
       <div class="card-body">
-        <!-- 头像 -->
-        <div class="avatar-row">
-          <div class="avatar-preview" @click="pickAvatar" title="点击上传头像">
-            <img v-if="character.avatar" :src="character.avatar" alt="头像" />
-            <span v-else class="avatar-placeholder">☽<br /><small>点击上传</small></span>
+        <!-- 头像 + 基本信息（头像在 grid-2 / grid-3 左侧） -->
+        <div class="basic-top">
+          <div class="avatar-col">
+            <div class="avatar-preview" @click="pickAvatar" title="点击上传头像">
+              <img v-if="character.avatar" :src="character.avatar" alt="头像" />
+              <span v-else class="avatar-placeholder">☽<br /><small>点击上传</small></span>
+            </div>
           </div>
-          <button v-if="character.avatar" class="btn sm ghost danger" @click="removeAvatar">移除头像</button>
+          <div class="basic-main">
+            <div class="grid-2">
+              <div>
+                <label class="lbl">姓名</label>
+                <input class="inp" v-model="character.name" @input="saveCharacter" placeholder="调查员的姓名" />
+              </div>
+              <div>
+                <label class="lbl">玩家</label>
+                <input class="inp" v-model="character.player" @input="saveCharacter" placeholder="玩家名" />
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div>
+                <label class="lbl">年龄</label>
+                <input class="inp" type="number" min="1" max="120" v-model="character.age" @input="saveCharacter" placeholder="年龄" />
+              </div>
+              <div>
+                <label class="lbl">启用年龄修正</label>
+                <label class="switch" style="margin-top:9px">
+                  <input type="checkbox" v-model="character.ageModifier" @change="saveCharacter" />
+                  <span class="track"></span>
+                  <span class="small dim">{{ character.ageModifier ? '已启用' : '未启用' }}</span>
+                </label>
+              </div>
+              <div>
+                <label class="lbl">性别</label>
+                <div class="seg" style="margin-top:2px">
+                  <span class="seg-item" :class="{ active: character.gender === '男' }" @click="character.gender = '男'; saveCharacter()">男</span>
+                  <span class="seg-item" :class="{ active: character.gender === '女' }" @click="character.gender = '女'; saveCharacter()">女</span>
+                  <span class="seg-item" :class="{ active: character.gender === '其他' }" @click="character.gender = '其他'; saveCharacter()">其他</span>
+                </div>
+                <input v-if="character.gender === '其他'" class="inp mt-8" v-model="character.genderOther" @input="saveCharacter" placeholder="请填写" />
+              </div>
+            </div>
+          </div>
         </div>
+        <button v-if="character.avatar" class="btn sm ghost danger mt-8" @click="removeAvatar">移除头像</button>
         <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileChange" />
         <AvatarCropper v-if="cropperOpen" :src="cropSrc" @confirm="onCropConfirm" @cancel="cropperOpen = false; cropSrc = ''" />
-
-        <div class="grid-2">
-          <div>
-            <label class="lbl">姓名</label>
-            <input class="inp" v-model="character.name" @input="saveCharacter" placeholder="调查员的姓名" />
-          </div>
-          <div>
-            <label class="lbl">玩家</label>
-            <input class="inp" v-model="character.player" @input="saveCharacter" placeholder="玩家名" />
-          </div>
-        </div>
-
-        <div class="grid-3">
-          <div>
-            <label class="lbl">年龄</label>
-            <input class="inp" type="number" min="1" max="120" v-model="character.age" @input="saveCharacter" placeholder="年龄" />
-          </div>
-          <div>
-            <label class="lbl">启用年龄修正</label>
-            <label class="switch" style="margin-top:9px">
-              <input type="checkbox" v-model="character.ageModifier" @change="saveCharacter" />
-              <span class="track"></span>
-              <span class="small dim">{{ character.ageModifier ? '已启用' : '未启用' }}</span>
-            </label>
-          </div>
-          <div>
-            <label class="lbl">性别</label>
-            <div class="seg" style="margin-top:2px">
-              <span class="seg-item" :class="{ active: character.gender === '男' }" @click="character.gender = '男'; saveCharacter()">男</span>
-              <span class="seg-item" :class="{ active: character.gender === '女' }" @click="character.gender = '女'; saveCharacter()">女</span>
-              <span class="seg-item" :class="{ active: character.gender === '其他' }" @click="character.gender = '其他'; saveCharacter()">其他</span>
-            </div>
-            <input v-if="character.gender === '其他'" class="inp mt-8" v-model="character.genderOther" @input="saveCharacter" placeholder="请填写" />
-          </div>
-        </div>
 
         <div class="grid-3">
           <div>
@@ -152,21 +166,21 @@ function removeAvatar() {
           </div>
         </div>
 
-        <div>
-          <label class="lbl">时代</label>
-          <div class="seg">
-            <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" @click="character.era = e.v; saveCharacter()">{{ e.label }}</span>
+        <div class="grid-4">
+          <div>
+            <label class="lbl">时代</label>
+            <div class="seg">
+              <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" @click="character.era = e.v; saveCharacter()">{{ e.label }}</span>
+            </div>
           </div>
-        </div>
-
-        <div class="mt-8">
-          <label class="lbl">老卡模式</label>
-          <label class="switch" style="margin-top:9px">
-            <input type="checkbox" v-model="character.legacyMode" @change="saveCharacter" />
-            <span class="track"></span>
-            <span class="small dim">{{ character.legacyMode ? '已开启' : '未开启' }}</span>
-          </label>
-          <p class="hint mt-8">开启后，属性点与技能点分配可无视点数上限，直接输入任意点数。</p>
+          <div>
+            <label class="lbl">老卡模式（属性点与技能点分配可无视点数上限）</label>
+            <label class="switch" style="margin-top:9px">
+              <input type="checkbox" v-model="character.legacyMode" @change="saveCharacter" />
+              <span class="track"></span>
+              <span class="small dim">{{ character.legacyMode ? '已开启' : '未开启' }}</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -174,16 +188,28 @@ function removeAvatar() {
     <div class="card mt-16">
       <div class="card-title"><h2>职业</h2><span class="sub">Occupation</span></div>
       <div class="card-body">
-        <div class="seg mb-16">
-          <span class="seg-item" :class="{ active: character.jobType === 'preset' }" @click="character.jobType = 'preset'; saveCharacter()">选择职业</span>
-          <span class="seg-item" :class="{ active: character.jobType === 'custom' }" @click="character.jobType = 'custom'; saveCharacter()">自定义职业</span>
+        <div class="job-head">
+          <div class="seg">
+            <span class="seg-item" :class="{ active: character.jobType === 'preset' }" @click="character.jobType = 'preset'; saveCharacter()">选择职业</span>
+            <span class="seg-item" :class="{ active: character.jobType === 'custom' }" @click="character.jobType = 'custom'; saveCharacter()">自定义职业</span>
+          </div>
+          <div class="book-filters" v-if="character.jobType === 'preset'">
+            <span
+              v-for="b in EXP_BOOKS"
+              :key="b"
+              class="seg-item book-toggle"
+              :class="{ active: character.expBooks[b] }"
+              :title="`显示/隐藏【${b}】来源的职业（高亮=显示）`"
+              @click="character.expBooks[b] = !character.expBooks[b]; saveCharacter()"
+            >{{ b }}</span>
+          </div>
         </div>
 
         <template v-if="character.jobType === 'preset'">
-          <label class="lbl">职业（按大类分组）</label>
+          <label class="lbl">职业</label>
           <select class="inp" v-model="character.jobName" @change="saveCharacter">
             <option value="" disabled>请选择职业…</option>
-            <optgroup v-for="[group, list] in jobGroups" :key="group" :label="group">
+            <optgroup v-for="[group, list] in filteredJobGroups" :key="group" :label="group">
               <option v-for="j in list" :key="j" :value="j">{{ j }}</option>
             </optgroup>
           </select>
@@ -229,13 +255,15 @@ function removeAvatar() {
 </template>
 
 <style scoped>
-.avatar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.basic-top { display: flex; align-items: stretch; gap: 20px; }
+.avatar-col { display: flex; flex-direction: column; width: 160px; }
 .avatar-preview {
-  width: 84px; height: 84px; border-radius: 12px; overflow: hidden; flex: none;
+  width: 160px; flex: 1 1 auto; min-height: 84px; border-radius: 12px; overflow: hidden;
   border: 1px solid var(--border); background: var(--surface-2);
   display: flex; align-items: center; justify-content: center; cursor: pointer;
   transition: border-color 0.15s;
 }
+.basic-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
 .avatar-preview:hover { border-color: var(--accent); }
 .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-placeholder { text-align: center; color: var(--text-faint); font-size: 1.2rem; line-height: 1.2; }
@@ -244,4 +272,13 @@ function removeAvatar() {
 .job-info-row { display: flex; gap: 10px; padding: 3px 0; }
 .job-info-label { flex: none; width: 72px; color: var(--text-faint); font-size: 0.85rem; }
 .job-info-val { line-height: 1.5; }
+.job-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.book-filters { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: flex-end; flex: 1; min-width: 240px; }
+.book-filters .seg-item { cursor: pointer; font-size: 0.76rem; padding: 4px 10px; opacity: 0.5; }
+.book-filters .seg-item.active { opacity: 1; }
+@media (max-width: 860px) {
+  .basic-top { flex-direction: column; align-items: stretch; }
+  .avatar-col { flex-direction: row; gap: 12px; width: auto; }
+  .avatar-preview { flex: none; width: 160px; height: 84px; min-height: 0; }
+}
 </style>

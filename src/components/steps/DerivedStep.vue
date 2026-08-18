@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue';
-import { character, derived, currentJob, totalProPoints, totalInterestPoints, packageSanLoss, saveCharacter } from '../../store.js';
+import { character, derived, currentJob, totalProPoints, totalInterestPoints, packageSanReduction, saveCharacter } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
 
-const sanAdj = computed(() => packageSanLoss());
+const sanAdj = computed(() => packageSanReduction());
 
 const jobDisplay = computed(() => {
   if (character.jobType === 'preset') return character.jobName || '未选择';
@@ -129,7 +129,7 @@ function bumpOverride(key, delta) {
               <h3 class="mb-8">衍生属性</h3>
               <table class="grid">
                 <tbody>
-                  <tr><td class="serif">理智 SAN</td><td class="right">{{ derived.san }}<span v-if="sanAdj" class="adj"> (−{{ sanAdj }})</span></td></tr>
+                  <tr><td class="serif">理智 SAN</td><td class="right">{{ derived.san }}<span v-if="sanAdj" class="adj">（含经验包 −{{ sanAdj }}）</span></td></tr>
                   <tr><td class="serif">理智值上限</td><td class="right">{{ derived.sanMax }}</td></tr>
                   <tr><td class="serif">生命值 HP</td><td class="right">{{ derived.hp }}</td></tr>
                   <tr><td class="serif">魔法值 MP</td><td class="right">{{ derived.mp }}</td></tr>
