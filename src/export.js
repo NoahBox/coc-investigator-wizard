@@ -27,6 +27,14 @@ export function downloadJSON() {
   downloadText(`${character.name || 'investigator'}.json`, exportJSON(), 'application/json');
 }
 
+// ---- 花名册备份（lz-string 压缩后的 JSON） ----
+export function downloadRosterBackup(text) {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+  downloadText(`调查员备份_${stamp}.coc.json`, text, 'application/json');
+}
+
 // ---- 骰娘 .st 字符串 ----
 function displayName(name) {
   return name.replace(/Ω/g, '');

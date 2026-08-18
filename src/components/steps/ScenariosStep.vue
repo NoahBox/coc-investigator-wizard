@@ -11,7 +11,7 @@ function removeRow(i) { character.scenarios.splice(i, 1); saveCharacter(); }
       <div class="card-title">
         <h2>经历过的剧本</h2><span class="sub">Scenarios Played</span>
         <span class="spacer"></span>
-        <button class="btn sm" @click="addRow">+ 添加行</button>
+        <button class="btn sm" @click="addRow"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
       <div class="card-body">
         <table class="grid">
@@ -20,7 +20,7 @@ function removeRow(i) { character.scenarios.splice(i, 1); saveCharacter(); }
             <tr v-for="(row, i) in character.scenarios" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" placeholder="剧本名称" /></td>
               <td><input v-model="row.time" @input="saveCharacter" placeholder="时间" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)">⨉</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>
         </table>

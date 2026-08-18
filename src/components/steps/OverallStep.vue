@@ -102,11 +102,11 @@ async function doSaikoBase64() {
     <div class="card toolbar">
       <div class="card-body row wrap">
         <h3 class="mr">导出</h3>
-        <button class="btn primary" @click="doImage">🖼 导出图片</button>
-        <button class="btn primary" @click="doPDF">📄 导出PDF</button>
-        <button class="btn" @click="doJSON">🧾 导出 JSON</button>
-        <button class="btn" @click="doSt">🎲 导出骰娘设定</button>
-        <button class="btn" @click="doSaikoBase64">📋 导出Saiko Base64</button>
+        <button class="btn primary" @click="doImage"><font-awesome-icon icon="fa-solid fa-file-image" />导出图片</button>
+        <button class="btn primary" @click="doPDF"><font-awesome-icon icon="fa-solid fa-file-pdf" />导出PDF</button>
+        <button class="btn" @click="doJSON"><font-awesome-icon icon="fa-solid fa-file-lines" />导出 JSON</button>
+        <button class="btn" @click="doSt"><font-awesome-icon icon="fa-solid fa-dice" />导出骰娘设定</button>
+        <button class="btn" @click="doSaikoBase64"><font-awesome-icon icon="fa-solid fa-file-zipper" />导出Saiko Base64</button>
         <span v-if="busy" class="small accent pulse">{{ busy }}</span>
       </div>
     </div>
@@ -356,7 +356,7 @@ async function doSaikoBase64() {
           </section>
         </div>
 
-        <div class="copyright">©「克苏鲁的呼唤」7版人物卡</div>
+        <div class="copyright">©2010-2026 Arclight, Inc. ©2020 Chaosium Inc.</div>
       </div>
     </div>
   </div>
@@ -366,7 +366,7 @@ async function doSaikoBase64() {
 .mr { margin-right: 8px; }
 .toolbar { max-width: 1000px; margin: 0 auto 20px; }
 
-/* ============ 纸张（黑白印刷风，照搬 TRPG Saiko）============ */
+/* ============ 纸张 ============ */
 .paper {
   --p-black: #2e2e2e;
   --p-white: #fff;

@@ -15,14 +15,14 @@ const rangeText = computed(() => `信用评级范围 ${creditRange.value[0]}–$
       <div class="card-title">
         <h2>物品与装备</h2><span class="sub">Possessions & Equipment</span>
         <span class="spacer"></span>
-        <button class="btn sm" @click="addRow(character.items)">+ 添加行</button>
+        <button class="btn sm" @click="addRow(character.items)"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
       <div class="card-body">
         <table class="grid">
           <tbody>
             <tr v-for="(row, i) in character.items" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" placeholder="物品名称" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.items, i)">⨉</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.items, i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>
         </table>
@@ -34,7 +34,7 @@ const rangeText = computed(() => `信用评级范围 ${creditRange.value[0]}–$
       <div class="card-title">
         <h2>资产</h2><span class="sub">Cash & Assets</span>
         <span class="spacer"></span>
-        <button class="btn sm" @click="addRow(character.assetsRows)">+ 添加行</button>
+        <button class="btn sm" @click="addRow(character.assetsRows)"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
       <div class="card-body">
         <div class="grid-3 mb-16">
@@ -58,7 +58,7 @@ const rangeText = computed(() => `信用评级范围 ${creditRange.value[0]}–$
           <tbody>
             <tr v-for="(row, i) in character.assetsRows" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" placeholder="资产名称（如房产、车辆）" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.assetsRows, i)">⨉</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.assetsRows, i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>
         </table>

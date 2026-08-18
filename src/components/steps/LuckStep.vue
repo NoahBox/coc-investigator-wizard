@@ -39,13 +39,13 @@ const sanAdj = computed(() => packageSanReduction());
             <div class="row">
               <input v-if="character.legacyMode" class="inp luck-inp" type="number" :value="character.attributes.luc ?? ''" placeholder="—" @input="setLuck($event.target.value)" />
               <span v-else class="big-val">{{ character.attributes.luc ?? '—' }}</span>
-              <button class="btn primary" @click="rollLuck">🎲 随机生成幸运</button>
+              <button class="btn primary" @click="rollLuck"><font-awesome-icon icon="fa-solid fa-dice" />随机生成幸运</button>
             </div>
           </div>
           <div>
             <label class="lbl">年龄修正</label>
             <template v-if="character.ageModifier">
-              <button class="btn" :disabled="!canAge" @click="applyAgeAdjustment">🎲 掷骰进行年龄修正</button>
+              <button class="btn" :disabled="!canAge" @click="applyAgeAdjustment"><font-awesome-icon icon="fa-solid fa-dice" />掷骰进行年龄修正</button>
               <p class="hint mt-8" v-if="!canAge">请先完成属性分配并填写年龄。</p>
             </template>
             <p v-else class="hint">未启用年龄修正。</p>

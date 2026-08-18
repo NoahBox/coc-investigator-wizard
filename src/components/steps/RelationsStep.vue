@@ -11,7 +11,7 @@ function removeRow(i) { character.relations.splice(i, 1); saveCharacter(); }
       <div class="card-title">
         <h2>人物关系</h2><span class="sub">Fellow Investigators & Connections</span>
         <span class="spacer"></span>
-        <button class="btn sm" @click="addRow">+ 添加行</button>
+        <button class="btn sm" @click="addRow"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
       <div class="card-body">
         <table class="grid">
@@ -22,7 +22,7 @@ function removeRow(i) { character.relations.splice(i, 1); saveCharacter(); }
               <td><input v-model="row.player" @input="saveCharacter" placeholder="玩家" /></td>
               <td><input v-model="row.job" @input="saveCharacter" placeholder="职业" /></td>
               <td><input v-model="row.relation" @input="saveCharacter" placeholder="与你的关系" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)">⨉</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>
         </table>

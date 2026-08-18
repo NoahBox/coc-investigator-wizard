@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { version } from '../package.json';
-import { theme, toggleTheme, applyTheme, newCharacter, importCharacter } from './store.js';
+import { theme, toggleTheme, applyTheme, newCharacter, importCharacter, loadInvestigator } from './store.js';
 import HomeView from './components/HomeView.vue';
 import WizardView from './components/WizardView.vue';
 
@@ -16,6 +16,11 @@ function startNew() {
 
 function handleImport(data) {
   importCharacter(data);
+  view.value = 'wizard';
+}
+
+function handleLoad(id) {
+  loadInvestigator(id);
   view.value = 'wizard';
 }
 
@@ -45,7 +50,7 @@ function goHome() {
     </header>
 
     <main>
-      <HomeView v-if="view === 'home'" @new="startNew" @import="handleImport" />
+      <HomeView v-if="view === 'home'" @new="startNew" @import="handleImport" @load="handleLoad" />
       <WizardView v-else />
     </main>
   </div>

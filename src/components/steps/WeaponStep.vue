@@ -51,8 +51,8 @@ const autoWeapons = computed(() => currentPackage.value?.autoWeapons || []);
               <option v-for="n in names" :key="n" :value="n">{{ n }}</option>
             </optgroup>
           </select>
-          <button class="btn primary" :disabled="!selected" @click="addWeapon(selected); selected=''">+ 添加</button>
-          <button class="btn" @click="addCustomWeapon">+ 自定义</button>
+          <button class="btn primary" :disabled="!selected" @click="addWeapon(selected); selected=''"><font-awesome-icon icon="fa-solid fa-plus" />添加</button>
+          <button class="btn" @click="addCustomWeapon"><font-awesome-icon icon="fa-solid fa-plus" />自定义</button>
         </div>
 
         <table class="grid" v-if="character.weapons.length">

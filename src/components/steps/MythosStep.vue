@@ -17,14 +17,14 @@ const sections = [
       <div class="card-title">
         <h2>{{ s.title }}</h2><span class="sub">{{ s.sub }}</span>
         <span class="spacer"></span>
-        <button class="btn sm" @click="addRow(s.list())">+ 添加行</button>
+        <button class="btn sm" @click="addRow(s.list())"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
       <div class="card-body">
         <table class="grid">
           <tbody>
             <tr v-for="(row, i) in s.list()" :key="i">
               <td><input v-model="row.name" @input="saveCharacter" :placeholder="s.ph" /></td>
-              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(s.list(), i)">⨉</button></td>
+              <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(s.list(), i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>
         </table>
