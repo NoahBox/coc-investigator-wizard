@@ -1,7 +1,7 @@
 // ============================================================
 // 导出工具：JSON / 骰娘 .st 字符串 / 图片 / PDF
 // ============================================================
-import { character, skillValue, getAllocation, skillBase, splitSkillKey } from './store.js';
+import { character, skillValue, getAllocation, skillBase, splitSkillKey, effectiveAttributes } from './store.js';
 import { skills, skillNameAlias } from './data/skills.js';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -41,7 +41,7 @@ function displayName(name) {
 }
 
 export function buildStString() {
-  const a = character.attributes || {};
+  const a = effectiveAttributes.value;
   const str = (k) => a[k] != null ? a[k] : 0;
   const parts = [`.st`];
 

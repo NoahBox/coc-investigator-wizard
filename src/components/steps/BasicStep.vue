@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { character, saveCharacter, currentJob, splitSkillKey } from '../../store.js';
 import { jobGroups, EXP_BOOKS, getExpBooks } from '../../data/jobs.js';
-import { ATTR_LABELS } from '../../data/rules.js';
+import { ATTR_LABELS, ATTR_KEYS } from '../../data/rules.js';
 import AvatarCropper from '../AvatarCropper.vue';
 
 const countries = ['美国', '中国', '日本'];
@@ -174,7 +174,7 @@ function removeAvatar() {
             </div>
           </div>
           <div>
-            <label class="lbl">老卡模式（属性点与技能点分配可无视点数上限）</label>
+            <label class="lbl">老卡模式（属性点与技能点分配无视上限）</label>
             <label class="switch" style="margin-top:9px">
               <input type="checkbox" v-model="character.legacyMode" @change="saveCharacter" />
               <span class="track"></span>
@@ -231,10 +231,17 @@ function removeAvatar() {
             </div>
             <div>
               <label class="lbl">职业技能点数公式</label>
-              <select class="inp" v-model="character.customPointFormula" @change="saveCharacter">
-                <option value="edu4">教育 × 4</option>
-                <option value="edu2">教育 × 2 + 自选属性 × 2</option>
-              </select>
+              <div class="point-formula">
+                <select class="inp" v-model="character.customPointAttr1" @change="saveCharacter">
+                  <option v-for="k in ATTR_KEYS" :key="k" :value="k">{{ ATTR_LABELS[k] }}</option>
+                </select>
+                <span class="pf-op">× 2</span>
+                <span class="pf-plus">+</span>
+                <select class="inp" v-model="character.customPointAttr2" @change="saveCharacter">
+                  <option v-for="k in ATTR_KEYS" :key="k" :value="k">{{ ATTR_LABELS[k] }}</option>
+                </select>
+                <span class="pf-op">× 2</span>
+              </div>
             </div>
           </div>
           <div class="grid-2 mt-8">
@@ -269,6 +276,10 @@ function removeAvatar() {
 .avatar-placeholder { text-align: center; color: var(--text-faint); font-size: 1.2rem; line-height: 1.2; }
 .avatar-placeholder small { font-size: 0.7rem; }
 .job-info { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface-2); }
+.point-formula { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.point-formula .inp { flex: 1 1 110px; min-width: 0; }
+.pf-op { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.pf-plus { color: var(--text-faint); }
 .job-info-row { display: flex; gap: 10px; padding: 3px 0; }
 .job-info-label { flex: none; width: 72px; color: var(--text-faint); font-size: 0.85rem; }
 .job-info-val { line-height: 1.5; }

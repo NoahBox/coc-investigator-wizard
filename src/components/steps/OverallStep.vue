@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import {
-  character, derived, getAllocation, skillValue, skillBase, makeSkillKey, packageAdjust,
+  character, derived, getAllocation, skillValue, skillBaseOf, effectiveAttr, makeSkillKey, packageAdjust,
   creditRatingValue, livingStandard, cashInfo, currency, isOccupationSkill,
 } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
@@ -15,7 +15,7 @@ const busy = ref('');
 
 const jobDisplay = computed(() => character.jobType === 'preset' ? character.jobName : (character.customJobName || '自定义'));
 const genderDisplay = computed(() => character.gender === '其他' ? (character.genderOther || '其他') : character.gender);
-const attrSum = computed(() => ATTR_KEYS.reduce((s, k) => s + (character.attributes[k] || 0), 0));
+const attrSum = computed(() => ATTR_KEYS.reduce((s, k) => s + effectiveAttr(k), 0));
 
 // 技能表数据（按分类，展开分组子技能）
 const skillTable = computed(() => {
@@ -53,7 +53,7 @@ const skillRight = computed(() => skillTable.value.slice(SKILL_SPLIT));
 // 每行技能数据
 function skillRow(key) {
   const a = getAllocation(key);
-  const base = skillBase(key, character.attributes);
+  const base = skillBaseOf(key);
   const total = skillValue(key);
   return {
     base,
@@ -145,14 +145,14 @@ async function doSaikoBase64() {
               <div class="attr-group">
                 <div v-for="k in ['str','con','dex','app']" :key="k" class="writable-row">
                   <span class="lbl">{{ ATTR_LABELS[k] }}<span class="hint-text">{{ ATTR_EN[k] }}</span></span>
-                  <span class="line grow center">{{ character.attributes[k] ?? '' }}</span>
+                  <span class="line grow center">{{ effectiveAttr(k) }}</span>
                 </div>
               </div>
               <div class="divider"></div>
               <div class="attr-group">
                 <div v-for="k in ['pow','siz','edu','int']" :key="k" class="writable-row">
                   <span class="lbl">{{ ATTR_LABELS[k] }}<span class="hint-text">{{ ATTR_EN[k] }}</span></span>
-                  <span class="line grow center">{{ character.attributes[k] ?? '' }}</span>
+                  <span class="line grow center">{{ effectiveAttr(k) }}</span>
                 </div>
               </div>
             </div>
@@ -166,7 +166,7 @@ async function doSaikoBase64() {
             </div>
             <div class="header luck-header"><h1 class="heading"><span class="title">幸运</span><span class="subtitle">Luck</span></h1></div>
             <div class="body luck-body">
-              <div class="writable-row"><span class="lbl">幸运</span><span class="line grow center big">{{ character.attributes.luc ?? '' }}</span></div>
+              <div class="writable-row"><span class="lbl">幸运</span><span class="line grow center big">{{ effectiveAttr('luc') }}</span></div>
             </div>
           </section>
         </div>

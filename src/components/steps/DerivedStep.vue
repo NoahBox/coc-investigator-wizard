@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { character, derived, currentJob, totalProPoints, totalInterestPoints, packageSanReduction, saveCharacter } from '../../store.js';
+import { character, derived, currentJob, totalProPoints, totalInterestPoints, packageSanReduction, saveCharacter, effectiveAttr } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
 
 const sanAdj = computed(() => packageSanReduction());
@@ -120,7 +120,7 @@ function bumpOverride(key, delta) {
                 <tbody>
                   <tr v-for="k in attrList" :key="k">
                     <td class="serif">{{ ATTR_LABELS[k] }} <span class="faint small">{{ ATTR_EN[k] }}</span></td>
-                    <td class="right">{{ character.attributes[k] ?? '—' }}</td>
+                    <td class="right">{{ effectiveAttr(k) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -129,7 +129,7 @@ function bumpOverride(key, delta) {
               <h3 class="mb-8">衍生属性</h3>
               <table class="grid">
                 <tbody>
-                  <tr><td class="serif">理智 SAN</td><td class="right">{{ derived.san }}<span v-if="sanAdj" class="adj">（含经验包 −{{ sanAdj }}）</span></td></tr>
+                  <tr><td class="serif">理智 SAN</td><td class="right">{{ derived.san }}</td></tr>
                   <tr><td class="serif">理智值上限</td><td class="right">{{ derived.sanMax }}</td></tr>
                   <tr><td class="serif">生命值 HP</td><td class="right">{{ derived.hp }}</td></tr>
                   <tr><td class="serif">魔法值 MP</td><td class="right">{{ derived.mp }}</td></tr>

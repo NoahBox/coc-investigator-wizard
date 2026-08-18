@@ -30,7 +30,7 @@ const required = computed(() => currentPackage.value?.requiredBackgrounds || [])
         </div>
 
         <div v-if="required.length" class="req-box mt-16">
-          <p class="warn-text">⚠ 经验包要求补充以下背景项：</p>
+          <p class="warn-text">经验包要求补充以下背景项：</p>
           <ul class="req-list">
             <li v-for="(r, i) in required" :key="i" class="warn-text">{{ r }}</li>
           </ul>

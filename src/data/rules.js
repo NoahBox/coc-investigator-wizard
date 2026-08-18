@@ -65,82 +65,62 @@ export function growPoint(origin, times = 1) {
   return { value: Math.min(result, 99), improved };
 }
 
-function minusAttributes(attributes, keys, total) {
-  const results = { ...attributes };
-  const sum = keys.reduce((s, k) => s + (results[k] || 0), 0);
-  if (sum < total + keys.length * 5) {
-    keys.forEach(k => (results[k] = 5));
-    return results;
-  }
-  let rest = total;
-  keys.forEach((key, index) => {
-    if (index === keys.length - 1) {
-      if ((results[key] || 0) - rest < 5) return minusAttributes(results, keys, rest);
-      results[key] -= rest;
-    } else {
-      let minus = roll(rest + 1) - 1;
-      if ((results[key] || 0) - minus < 5) minus = (results[key] || 0) - 5;
-      rest -= minus;
-      results[key] -= minus;
-    }
-  });
-  return results;
+// 年龄档信息：决定自动修正（外貌/教育/幸运）与需手动分配的身体削弱（力量/体型/体质/敏捷）
+export function ageAdjustmentInfo(age) {
+  const a = parseInt(age, 10);
+  if (isNaN(a) || a < 15) return { bracket: 'none', label: '低于15岁', physAllowed: [], physTotal: 0, appReduce: 0, eduTimes: 0, eduMinus5: false, luckReroll: false };
+  if (a < 20) return { bracket: 'young', label: '15~19岁', physAllowed: ['str', 'siz'], physTotal: 5, appReduce: 0, eduTimes: 0, eduMinus5: true, luckReroll: true };
+  if (a < 40) return { bracket: 'mid', label: '20~39岁', physAllowed: [], physTotal: 0, appReduce: 0, eduTimes: 1, eduMinus5: false, luckReroll: false };
+  if (a < 50) return { bracket: 'old', label: '40~49岁', physAllowed: ['str', 'con', 'dex'], physTotal: 5, appReduce: 5, eduTimes: 2, eduMinus5: false, luckReroll: false };
+  if (a < 60) return { bracket: 'old', label: '50~59岁', physAllowed: ['str', 'con', 'dex'], physTotal: 10, appReduce: 10, eduTimes: 3, eduMinus5: false, luckReroll: false };
+  if (a < 70) return { bracket: 'old', label: '60~69岁', physAllowed: ['str', 'con', 'dex'], physTotal: 20, appReduce: 15, eduTimes: 4, eduMinus5: false, luckReroll: false };
+  if (a < 80) return { bracket: 'old', label: '70~79岁', physAllowed: ['str', 'con', 'dex'], physTotal: 40, appReduce: 20, eduTimes: 4, eduMinus5: false, luckReroll: false };
+  if (a < 90) return { bracket: 'old', label: '80~89岁', physAllowed: ['str', 'con', 'dex'], physTotal: 80, appReduce: 25, eduTimes: 4, eduMinus5: false, luckReroll: false };
+  return { bracket: 'none', label: '90岁以上', physAllowed: [], physTotal: 0, appReduce: 0, eduTimes: 0, eduMinus5: false, luckReroll: false };
 }
 
-// 年龄修正，返回 { attributes, summary }
+// 年龄自动修正：只应用外貌减少、教育成长/减5、幸运重骰；
+// 身体削弱（力量/体型/体质/敏捷）通过 physTotal 返回，供用户在界面手动分配（共减少 physTotal 点），不在此自动扣减。
 export function modifyAttributesByAge(attributes, age) {
-  let results = { ...attributes };
+  const info = ageAdjustmentInfo(age);
+  const results = { ...attributes };
   const summary = [];
-  const ageNum = parseInt(age, 10);
-  if (isNaN(ageNum) || ageNum < 15) {
-    summary.push('年龄低于15岁，不进行年龄修正');
+  if (info.bracket === 'none') {
+    summary.push(`${info.label}：不进行年龄修正`);
     return { attributes: results, summary };
   }
-  if (ageNum < 20) {
-    results = minusAttributes(results, ['str', 'siz'], 5);
-    const newLuc = roll(6, 3) * 5;
-    results.luc = Math.max(results.luc || 0, newLuc);
-    summary.push('15~19岁：力量、体型 -5，幸运重骰（取较高者）');
-  } else if (ageNum < 40) {
-    const g = growPoint(results.edu || 0, 1);
-    results.edu = g.value;
-    summary.push('20~39岁：教育进行一次成长检定' + (g.improved[0].gain ? `（+${g.improved[0].gain}）` : '（未成长）'));
-  } else if (ageNum < 50) {
-    results = minusAttributes(results, ['str', 'con', 'dex'], 5);
-    results.app = Math.max((results.app || 0) - 5, 0);
-    const g = growPoint(results.edu || 0, 2);
-    results.edu = g.value;
-    summary.push('40~49岁：力量、体质、敏捷共 -5，外貌 -5，教育成长检定×2');
-  } else if (ageNum < 60) {
-    results = minusAttributes(results, ['str', 'con', 'dex'], 10);
-    results.app = Math.max((results.app || 0) - 10, 0);
-    const g = growPoint(results.edu || 0, 3);
-    results.edu = g.value;
-    summary.push('50~59岁：力量、体质、敏捷共 -10，外貌 -10，教育成长检定×3');
-  } else if (ageNum < 70) {
-    results = minusAttributes(results, ['str', 'con', 'dex'], 20);
-    results.app = Math.max((results.app || 0) - 15, 0);
-    const g = growPoint(results.edu || 0, 4);
-    results.edu = g.value;
-    summary.push('60~69岁：力量、体质、敏捷共 -20，外貌 -15，教育成长检定×4');
-  } else if (ageNum < 80) {
-    results = minusAttributes(results, ['str', 'con', 'dex'], 40);
-    results.app = Math.max((results.app || 0) - 20, 0);
-    const g = growPoint(results.edu || 0, 4);
-    results.edu = g.value;
-    summary.push('70~79岁：力量、体质、敏捷共 -40，外貌 -20，教育成长检定×4');
-  } else if (ageNum < 90) {
-    results = minusAttributes(results, ['str', 'con', 'dex'], 80);
-    results.app = Math.max((results.app || 0) - 25, 0);
-    const g = growPoint(results.edu || 0, 4);
-    results.edu = g.value;
-    summary.push('80~89岁：力量、体质、敏捷共 -80，外貌 -25，教育成长检定×4');
-  } else {
-    summary.push('90岁以上：不再进行额外的属性修正');
+  if (info.eduMinus5) {
+    results.edu = Math.max((results.edu || 0) - 5, 0);
+    summary.push(`${info.label}：教育 -5`);
   }
-  results.app = Math.max(results.app, 5);
+  if (info.eduTimes > 0) {
+    const g = growPoint(results.edu || 0, info.eduTimes);
+    results.edu = g.value;
+    summary.push(`${info.label}：教育成长检定×${info.eduTimes}` + eduGrowthNote(g));
+  }
+  if (info.appReduce > 0) {
+    results.app = Math.max((results.app || 0) - info.appReduce, 5);
+    summary.push(`${info.label}：外貌 -${info.appReduce}`);
+  }
+  if (info.luckReroll) {
+    const l1 = roll(6, 3) * 5, l2 = roll(6, 3) * 5;
+    results.luc = Math.max(l1, l2);
+    summary.push(`${info.label}：幸运掷骰两次取较高（${l1} / ${l2} → ${results.luc}）`);
+  }
+  if (info.physTotal > 0) {
+    const pl = info.physAllowed.map(k => ATTR_LABELS[k]).join('、');
+    summary.push(`${info.label}：需从 ${pl} 共减少 ${info.physTotal} 点（请在下方手动分配）`);
+  }
   results.edu = Math.min(results.edu, 99);
   return { attributes: results, summary };
+}
+
+// 教育成长检定明细：每次掷 1D100，若大于当前教育则 +1D10
+function eduGrowthNote(g) {
+  const parts = g.improved.map((it, i) =>
+    `第${i + 1}次 1D100=${it.judge}${it.gain ? ` > 教育 +${it.gain}` : ' ≤ 教育 未成长'}`
+  );
+  return `（${parts.join('；')}）`;
 }
 
 // ---- 衍生属性 ----

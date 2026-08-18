@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { importSaikoBase64 } from '../saiko.js';
-import { listInvestigators, deleteInvestigator, duplicateInvestigator, buildRosterExport, parseRosterExport, importInvestigators } from '../store.js';
+import { listInvestigators, deleteInvestigator, duplicateInvestigator, setInvestigatorImported, buildRosterExport, parseRosterExport, importInvestigators } from '../store.js';
 import { downloadRosterBackup } from '../export.js';
 
 const emit = defineEmits(['new', 'import', 'load']);
@@ -51,17 +51,15 @@ function applySaiko() {
 
 function openCard(id) { emit('load', id); }
 function dupCard(id) { duplicateInvestigator(id); refresh(); }
+function toggleMode(c) {
+  setInvestigatorImported(c.id, !c.imported);
+  refresh();
+}
 function delCard(id) {
   const c = roster.value.find(x => x.id === id);
   if (!confirm(`确定删除调查员「${c ? c.name : ''}」吗？此操作不可撤销。`)) return;
   deleteInvestigator(id);
   refresh();
-}
-function fmt(ts) {
-  if (!ts) return '';
-  const d = new Date(ts);
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // ---- 花名册导出 / 导入 ----
@@ -185,8 +183,13 @@ function doImport() {
             <span class="ri-name">{{ c.name }}</span>
             <span class="ri-meta dim small">{{ c.jobName }}<template v-if="c.age"> · {{ c.age }}岁</template></span>
           </div>
-          <span class="ri-time dim small">{{ fmt(c.updatedAt) }}</span>
           <div class="ri-actions" @click.stop>
+            <button
+              class="btn ghost sm mode-toggle"
+              :class="{ done: c.imported }"
+              @click="toggleMode(c)"
+              :title="c.imported ? '创建完成：点击切换为创建模式' : '创建模式：点击切换为创建完成'"
+            >{{ c.imported ? '已完成' : '创建中' }}</button>
             <button class="btn ghost sm" @click="dupCard(c.id)">
               <font-awesome-icon icon="fa-solid fa-copy" />
             </button>
@@ -325,8 +328,9 @@ function doImport() {
 .roster-item.active { border-color: var(--gold); }
 .ri-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
 .ri-name { font-family: Georgia, serif; font-size: 1.15rem; color: var(--text); letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ri-time { flex: none; color: var(--text-faint); }
-.ri-actions { display: flex; gap: 8px; flex: none; margin-left: auto; }
+.ri-actions { display: flex; gap: 8px; flex: none; margin-left: auto; align-items: center; }
+.mode-toggle { min-width: 58px; justify-content: center; color: var(--text-dim); border-color: var(--border); }
+.mode-toggle.done { color: var(--accent-strong); border-color: var(--accent); background: var(--accent-dim); }
 .btn.ghost.sm { color: var(--accent); border-color: var(--border);}
 .btn.ghost.sm.danger { color: #d98a7b; border-color: rgba(217,138,123,0.4); }
 .btn.ghost.sm.danger:hover { border-color: #d98a7b; color: #e89c8e; }

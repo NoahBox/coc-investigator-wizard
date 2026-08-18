@@ -111,14 +111,15 @@ export function createEmptyCharacter() {
     avatar: '',
     country: '美国', hometown: '', residence: '', era: 'modern',
     jobType: 'preset', jobName: '', customJobName: '',
-    customSkills: [], customPointFormula: 'edu4', customWealth: [9, 30],
+    customSkills: [], customPointAttr1: 'edu', customPointAttr2: 'edu', customWealth: [9, 30],
     ageModifier: true,
     packageEnabled: false, packageId: null,
-    packageSkillPoints: {}, packageRolls: {}, believer: false,
+    packageSkillPoints: {}, packageRolls: {}, believer: false, packageAttrBonus: {},
     attrMethod: 'pointbuy', pointTotal: 460,
     attributes: emptyAttributes(),
     attrPool: [],
-    ageAdjusted: false, ageSummary: [],
+    ageAdjusted: false, ageSummary: [], preAgeAttributes: null,
+    luckAttrBonus: {}, ageAutoBonus: {},
     // 技能分配 { key: { pro, interest, growth, package } }
     allocations: {},
     // 分组技能的子技能顺序 { 母语: ['英语'], 外语: [...], ... }
@@ -288,6 +289,7 @@ export function listInvestigators() {
         jobName: c.jobType === 'preset' ? (c.jobName || '未知职业') : (c.customJobName || '自定义职业'),
         age: c.age,
         updatedAt: c.updatedAt || 0,
+        imported: !!c.imported,
         current: id === roster.currentId,
       };
     })
@@ -343,6 +345,16 @@ export function duplicateInvestigator(id) {
   roster.currentId = copy.id;
   writeRoster(roster);
   return copy.id;
+}
+
+// 切换调查员状态：创建模式(imported=false → 新调查员流程) / 创建完成(imported=true → 导入调查员流程)
+export function setInvestigatorImported(id, imported) {
+  flushSave(); // 先固化当前卡的待保存内容，避免被异步写回覆盖
+  const roster = readRoster();
+  const c = roster.cards[id];
+  if (!c) return;
+  c.imported = !!imported;
+  writeRoster(roster);
 }
 
 // ---- 花名册导入/导出（lz-string 压缩 JSON） ----
@@ -401,8 +413,26 @@ export function importInvestigators(cards) {
 }
 
 // ---- 派生计算 ----
+// 有效属性值 = 基础(购点/随机) + 年龄自动修正 + 年龄手动身体削弱 + 经验包加成
+export function effectiveAttr(k) {
+  return (character.attributes?.[k] || 0)
+    + (character.ageAutoBonus?.[k] || 0)
+    + (character.luckAttrBonus?.[k] || 0)
+    + (character.packageAttrBonus?.[k] || 0);
+}
+export const effectiveAttributes = computed(() => {
+  const a = {};
+  [...ATTR_KEYS, 'luc'].forEach(k => { a[k] = effectiveAttr(k); });
+  return a;
+});
+
+// 技能基础值（基于有效属性：母语=有效教育、闪避=有效敏捷/2）
+export function skillBaseOf(key) {
+  return skillBase(key, effectiveAttributes.value);
+}
+
 export const derived = computed(() => {
-  const a = character.attributes;
+  const a = effectiveAttributes.value;
   const base = computeDerived(a, character.age);
   const over = character.derivedOverrides || {};
   const mythos = skillValue('克苏鲁神话');
@@ -435,13 +465,14 @@ export const creditRange = computed(() => {
 // 职业技能点数
 export const totalProPoints = computed(() => {
   if (character.jobType === 'preset' && currentJob.value) {
-    return computeProSkillPoints(currentJob.value, character.attributes);
+    return computeProSkillPoints(currentJob.value, effectiveAttributes.value);
   }
-  // 自定义职业：默认 教育×4
-  const edu = character.attributes.edu || 0;
-  return edu * 4;
+  // 自定义职业：两个属性各 ×2 相加
+  const a1 = character.customPointAttr1 || 'edu';
+  const a2 = character.customPointAttr2 || 'edu';
+  return effectiveAttr(a1) * 2 + effectiveAttr(a2) * 2;
 });
-export const totalInterestPoints = computed(() => computeInterestSkillPoints(character.attributes));
+export const totalInterestPoints = computed(() => computeInterestSkillPoints(effectiveAttributes.value));
 
 // 解析本职技能（固定 + 任选槽）
 export function resolveJobSkills(job) {
@@ -539,12 +570,12 @@ export function getAllocation(key) {
   return character.allocations[key] || { pro: 0, interest: 0, growth: 0, package: 0 };
 }
 export function skillValue(key) {
-  const base = skillBase(key, character.attributes);
+  const base = skillBase(key, effectiveAttributes.value);
   const a = getAllocation(key);
   return base + (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + packageAdjust(key);
 }
 export function skillValueText(key) {
-  const base = skillBase(key, character.attributes);
+  const base = skillBase(key, effectiveAttributes.value);
   const a = getAllocation(key);
   const pkg = packageAdjust(key);
   const total = base + (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + pkg;
@@ -636,17 +667,24 @@ export function ensureGroupChild(groupName, childName) {
 
 // 母语默认 = 教育，闪避默认 = 1/2敏捷 的展示值
 export const dynamicBase = computed(() => ({
-  母语: character.attributes.edu || 0,
-  闪避: Math.floor((character.attributes.dex || 0) / 2),
+  母语: effectiveAttr('edu'),
+  闪避: Math.floor(effectiveAttr('dex') / 2),
 }));
 
 // 是否所有基础属性已填
 export const attributesComplete = computed(() => ATTR_KEYS.every(k => character.attributes[k] != null && character.attributes[k] > 0));
 
-// 应用年龄修正
+// 应用年龄自动修正（从首次应用的「年龄前快照」推导，可重复重骰且幂等）
+// 结果写入 ageAutoBonus（差值层），不改动基础属性，避免影响购点剩余点数。
 export function applyAgeAdjustment() {
-  const { attributes, summary } = modifyAttributesByAge({ ...character.attributes }, character.age);
-  Object.keys(attributes).forEach(k => { character.attributes[k] = attributes[k]; });
+  if (!character.preAgeAttributes) character.preAgeAttributes = { ...character.attributes };
+  const base = { ...character.preAgeAttributes };
+  const { attributes, summary } = modifyAttributesByAge(base, character.age);
+  const auto = {};
+  [...ATTR_KEYS, 'luc'].forEach(k => {
+    auto[k] = (attributes[k] || 0) - (base[k] || 0);
+  });
+  character.ageAutoBonus = auto;
   character.ageSummary = summary;
   character.ageAdjusted = true;
   saveCharacter();

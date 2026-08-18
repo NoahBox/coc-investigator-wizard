@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { character, saveCharacter, occupationSkills, getAllocation, skillValue, skillBase, setAllocation, splitSkillKey } from '../../store.js';
+import { character, saveCharacter, occupationSkills, getAllocation, skillValue, skillBaseOf, setAllocation, splitSkillKey } from '../../store.js';
 import { roll } from '../../data/rules.js';
 
 const selected = ref({});
@@ -61,7 +61,7 @@ function doGrowth() {
                 </label>
               </td>
               <td>{{ fmtKey(key) }}</td>
-              <td class="dim">{{ skillBase(key, character.attributes) }}</td>
+              <td class="dim">{{ skillBaseOf(key) }}</td>
               <td class="dim">{{ allocPoints(key) }}</td>
               <td class="val serif">{{ skillValue(key) }}</td>
             </tr>

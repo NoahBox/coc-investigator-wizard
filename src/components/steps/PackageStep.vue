@@ -35,6 +35,20 @@ function subPoint(sk) {
 function pointOf(sk) {
   return character.packageSkillPoints[makeSkillKey(sk.name, sk.child || null)] || 0;
 }
+function setPoint(sk, v) {
+  const key = makeSkillKey(sk.name, sk.child || null);
+  if (v === '' || v == null) {
+    character.packageSkillPoints[key] = 0;
+    saveCharacter();
+    return;
+  }
+  const n = Math.round(Number(v));
+  if (Number.isNaN(n)) return;
+  const cur = character.packageSkillPoints[key] || 0;
+  const max = cur + (currentPackage.value.skillPoints - usedPackagePoints());
+  character.packageSkillPoints[key] = Math.max(0, Math.min(max, n));
+  saveCharacter();
+}
 
 const remaining = computed(() => {
   const p = currentPackage.value;
@@ -122,7 +136,7 @@ const skillPointsFor = (name, child) => {
               <div v-for="(sk, i) in currentPackage.skills" :key="i" class="pkg-skill row">
                 <span class="grow">{{ sk.name }}{{ sk.child ? `（${sk.child}）` : '' }}</span>
                 <button class="btn sm" @click="subPoint(sk)">−</button>
-                <span class="pkg-pts">{{ pointOf(sk) }}</span>
+                <input class="pkg-inp" type="number" min="0" :value="pointOf(sk) || ''" placeholder="0" @input="setPoint(sk, $event.target.value)" />
                 <button class="btn sm" @click="addPoint(sk)">+</button>
               </div>
             </div>
@@ -154,6 +168,7 @@ const skillPointsFor = (name, child) => {
 .effects li { margin: 5px 0; }
 .pkg-skills { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .pkg-skill { padding: 6px 10px; background: var(--surface-2); border-radius: 8px; }
-.pkg-pts { min-width: 40px; text-align: center; font-weight: 600; color: var(--danger); }
+.pkg-inp { width: 64px; text-align: center; background: var(--surface-3); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 0.95rem; font-family: Georgia, serif; }
+.pkg-inp:focus { border-color: var(--accent); outline: none; }
 @media (max-width: 640px) { .pkg-list { grid-template-columns: 1fr; } }
 </style>

@@ -3,7 +3,7 @@
 // 格式：LZString.compressToEncodedURIComponent(JSON.stringify({ pc, viewData }))
 // ============================================================
 import LZString from 'lz-string';
-import { createEmptyCharacter, character, occupationSkills, totalProPoints, totalInterestPoints, packageAdjust, packageSanReduction } from './store.js';
+import { createEmptyCharacter, character, occupationSkills, totalProPoints, totalInterestPoints, packageAdjust, packageSanReduction, effectiveAttributes } from './store.js';
 import { getJob } from './data/jobs.js';
 import { computeDerived } from './data/rules.js';
 
@@ -152,7 +152,7 @@ export function fromSaiko(data) {
 // ---- 本项目 character → TRPG Saiko 数据 ----
 export function toSaiko() {
   const char = character;
-  const attrs = char.attributes || {};
+  const attrs = effectiveAttributes.value;
   const over = char.derivedOverrides || {};
   const derived = computeDerived(attrs, char.age);
 

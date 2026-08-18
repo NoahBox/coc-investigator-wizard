@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { character, getAllocation, skillValue, skillBase, isOccupationSkill, packageAdjust } from '../../store.js';
+import { character, getAllocation, skillValue, skillBaseOf, isOccupationSkill, packageAdjust } from '../../store.js';
 import { skills, getSkill } from '../../data/skills.js';
 
 function fmtKey(key) {
@@ -52,7 +52,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
               <tbody>
                 <tr v-for="e in proList" :key="e.key">
                   <td>{{ displayName(e) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
-                  <td>{{ skillBase(e.key, character.attributes) }}</td>
+                  <td>{{ skillBaseOf(e.key) }}</td>
                   <td>{{ getAllocation(e.key).pro || 0 }}</td>
                   <td>{{ skillValue(e.key) }}</td>
                 </tr>
@@ -67,7 +67,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
               <tbody>
                 <tr v-for="e in interestList" :key="e.key">
                   <td>{{ displayName(e) }}<span v-if="packageAdjust(e.key)" class="adj"> (+{{ packageAdjust(e.key) }})</span></td>
-                  <td>{{ skillBase(e.key, character.attributes) }}</td>
+                  <td>{{ skillBaseOf(e.key) }}</td>
                   <td>{{ getAllocation(e.key).interest || 0 }}</td>
                   <td>{{ skillValue(e.key) }}</td>
                 </tr>
@@ -84,7 +84,7 @@ const otherList = computed(() => entries.value.filter(e => (getAllocation(e.key)
             <tbody>
               <tr v-for="e in otherList" :key="e.key">
                 <td>{{ displayName(e) }}</td>
-                <td>{{ skillBase(e.key, character.attributes) }}</td>
+                <td>{{ skillBaseOf(e.key) }}</td>
                 <td class="danger">{{ getAllocation(e.key).package || 0 }}</td>
                 <td>{{ getAllocation(e.key).growth || 0 }}</td>
                 <td>{{ skillValue(e.key) }}</td>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import {
-  character, saveCharacter, getAllocation, setAllocation, skillValue, skillBase,
+  character, saveCharacter, getAllocation, setAllocation, skillValue, skillBaseOf,
   totalProPoints, totalInterestPoints, usedProPoints, usedInterestPoints,
   occupationSkills, occupationGroupNames, isOccupationSkill, packageAdjust, splitSkillKey, makeSkillKey,
   jobGroupHints,
@@ -200,7 +200,7 @@ function toggleCustomSkill(key) {
           <template v-for="key in occupationSkills" :key="key">
             <div v-if="!getSkill(splitSkillKey(key).name)?.group" class="skill-row" :class="{ growth: showGrowth }">
               <span class="s-name" :title="skillIntro(splitSkillKey(key).name)">{{ showName(splitSkillKey(key).name) }}</span>
-              <span class="s-base faint">{{ skillBase(key, character.attributes) }}</span>
+              <span class="s-base faint">{{ skillBaseOf(key) }}</span>
               <span v-if="showGrowth" class="s-growth faint">{{ growthOf(key) || '—' }}</span>
               <span class="s-alloc">
                 <button class="btn sm" @click="bump(key, -5)">−</button>
@@ -224,7 +224,7 @@ function toggleCustomSkill(key) {
             <!-- 普通技能 -->
             <div v-if="!groupedSkillNames.includes(name)" class="skill-row" :class="{ pulp: isPulp, growth: showGrowth }">
               <span class="s-name" :class="{ faint: !allocatable(name) }" :title="skillIntro(name)">{{ showName(name) }}</span>
-              <span class="s-base faint">{{ skillBase(name, character.attributes) }}</span>
+              <span class="s-base faint">{{ skillBaseOf(name) }}</span>
               <span v-if="isPulp" class="s-pro faint">{{ proValOf(name) }}</span>
               <span v-if="showGrowth" class="s-growth faint">{{ growthOf(name) || '—' }}</span>
               <span class="s-alloc">
@@ -241,7 +241,7 @@ function toggleCustomSkill(key) {
             <div v-else class="group-block">
               <div class="group-head">
                 <span class="serif" :title="skillIntro(name)">{{ showName(name) }}</span>
-                <span class="faint small">基础 {{ skillBase(name, character.attributes) }}</span>
+                <span class="faint small">基础 {{ skillBaseOf(name) }}</span>
                 <button class="btn sm ghost" @click="addChild(name)">+ 添加类别</button>
               </div>
               <div v-for="(child, ci) in getChildren(name)" :key="ci" class="skill-row group-child" :class="{ pulp: isPulp, growth: showGrowth }">
@@ -250,9 +250,11 @@ function toggleCustomSkill(key) {
                   <datalist :id="'ch-' + name">
                     <option v-for="s in childSuggestions(name)" :key="s" :value="s"></option>
                   </datalist>
-                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(name, ci)">×</button>
+                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(name, ci)" title="删除该类别">
+                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  </button>
                 </span>
-                <span class="s-base faint">{{ skillBase(makeSkillKey(name, child), character.attributes) }}</span>
+                <span class="s-base faint">{{ skillBaseOf(makeSkillKey(name, child)) }}</span>
                 <span v-if="isPulp" class="s-pro faint">{{ proValOf(makeSkillKey(name, child)) }}</span>
                 <span v-if="showGrowth" class="s-growth faint">{{ growthOf(makeSkillKey(name, child)) || '—' }}</span>
                 <span class="s-alloc">
@@ -275,7 +277,7 @@ function toggleCustomSkill(key) {
             <div class="group-block">
               <div class="group-head">
                 <span class="serif" :title="skillIntro(groupName)">{{ showName(groupName) }}</span>
-                <span class="faint small">基础 {{ skillBase(groupName, character.attributes) }}</span>
+                <span class="faint small">基础 {{ skillBaseOf(groupName) }}</span>
                 <span v-if="jobGroupHints[groupName]" class="hint-chip">推荐：{{ jobGroupHints[groupName] }}</span>
                 <button class="btn sm ghost" @click="addChild(groupName)">+ 添加类别</button>
               </div>
@@ -285,9 +287,11 @@ function toggleCustomSkill(key) {
                   <datalist :id="'chp-' + groupName">
                     <option v-for="s in childSuggestions(groupName)" :key="s" :value="s"></option>
                   </datalist>
-                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(groupName, ci)">×</button>
+                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(groupName, ci)" title="删除该类别">
+                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  </button>
                 </span>
-                <span class="s-base faint">{{ skillBase(makeSkillKey(groupName, child), character.attributes) }}</span>
+                <span class="s-base faint">{{ skillBaseOf(makeSkillKey(groupName, child)) }}</span>
                 <span v-if="showGrowth" class="s-growth faint">{{ growthOf(makeSkillKey(groupName, child)) || '—' }}</span>
                 <span class="s-alloc">
                   <button class="btn sm" @click="bump(makeSkillKey(groupName, child), -5)">−</button>
@@ -322,8 +326,9 @@ function toggleCustomSkill(key) {
 .group-child.pulp { grid-template-columns: 1.6fr 0.6fr 0.7fr 1.6fr 0.6fr; }
 .group-child.growth { grid-template-columns: 1.6fr 0.6fr 0.6fr 1.6fr 0.6fr; }
 .group-child.pulp.growth { grid-template-columns: 1.6fr 0.6fr 0.7fr 0.6fr 1.6fr 0.6fr; }
-.group-child .s-name { overflow: visible; }
-.s-name .rem { margin-left: 6px; }
+.group-child .s-name { overflow: visible; display: flex; align-items: center; gap: 6px; }
+.group-child .s-name .child-inp { flex: 1 1 auto; min-width: 0; width: auto; }
+.s-name .rem { margin-left: 0; }
 .child-inp { padding: 4px 8px; }
 .custom-picker { border: 1px dashed var(--border-strong); }
 .picker-list { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 10px 4px; }

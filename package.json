@@ -1,6 +1,6 @@
 {
   "name": "coc-investigator-wizard",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
   "description": "克苏鲁的呼唤 COC 7版 调查员角色卡交互式创建工具",

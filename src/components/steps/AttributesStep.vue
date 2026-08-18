@@ -227,16 +227,18 @@ function attrAdjustment(k) { return 0; }
 </template>
 
 <style scoped>
-.attr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+/* 自适应：先挤压卡片宽度，挤到最小值后再重排行/列（auto-fit + minmax）。
+   最小列宽取 176px，使内容在 .wizard 最大宽度(1200px)下最多排 4 列。 */
+.attr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 12px; }
 .attr-pb, .attr-slot { text-align: center; }
 .attr-val { font-size: 1.5rem; font-family: Georgia, serif; min-width: 52px; }
 .attr-inp {
-  width: 60px; text-align: center; background: var(--surface-2); color: var(--text);
+  width: 100%; max-width: 60px; min-width: 0; text-align: center; background: var(--surface-2); color: var(--text);
   border: 1px solid var(--border); border-radius: 4px; padding: 5px;
   font: inherit; font-size: 1.2rem; font-family: Georgia, serif;
 }
 .attr-inp:focus { border-color: var(--accent); outline: none; }
-.attr-pb .row { justify-content: center; }
+.attr-pb .row { justify-content: center; gap: 6px; flex-wrap: nowrap; }
 .drag-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; align-items: start; }
 .pool-cards { display: flex; flex-wrap: wrap; gap: 8px; }
 .val-card {
@@ -251,5 +253,5 @@ function attrAdjustment(k) { return 0; }
 .attr-slot:hover { border-color: var(--border-strong); }
 .attr-slot.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; background: var(--accent-dim); }
 .slot-val { font-size: 1.5rem; font-family: Georgia, serif; margin-top: 8px; }
-@media (max-width: 860px) { .attr-grid { grid-template-columns: repeat(2, 1fr); } .drag-layout { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .drag-layout { grid-template-columns: 1fr; } }
 </style>
