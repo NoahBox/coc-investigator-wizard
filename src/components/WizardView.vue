@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { character, saveCharacter } from '../store.js';
+import { isEraEra } from '../data/eras.js';
 import BasicStep from './steps/BasicStep.vue';
 import PackageStep from './steps/PackageStep.vue';
+import EraStep from './steps/EraStep.vue';
 import AttributesStep from './steps/AttributesStep.vue';
 import LuckStep from './steps/LuckStep.vue';
 import DerivedStep from './steps/DerivedStep.vue';
@@ -17,23 +19,30 @@ import ScenariosStep from './steps/ScenariosStep.vue';
 import OverallStep from './steps/OverallStep.vue';
 import GrowthStep from './steps/GrowthStep.vue';
 
-const createSteps = [
-  { id: 'basic', label: '基本信息' },
-  { id: 'package', label: '经验包' },
-  { id: 'attributes', label: '属性' },
-  { id: 'luck', label: '幸运与年龄' },
-  { id: 'derived', label: '当前数据' },
-  { id: 'proskills', label: '职业技能' },
-  { id: 'interestskills', label: '业余技能' },
-  { id: 'skilloverview', label: '技能总览' },
-  { id: 'weapons', label: '武器' },
-  { id: 'background', label: '背景故事' },
-  { id: 'items', label: '物品与资产' },
-  { id: 'mythos', label: '克苏鲁神话' },
-  { id: 'relations', label: '人物关系' },
-  { id: 'scenarios', label: '经历过的剧本' },
-  { id: 'overall', label: '总览' },
-];
+// 创建流程：经验包 / 时代特性位于「幸运与年龄」之后；选择扩展时代时再插入「时代特性」步骤
+const createSteps = computed(() => {
+  const base = [
+    { id: 'basic', label: '基本信息' },
+    { id: 'attributes', label: '属性' },
+    { id: 'luck', label: '幸运与年龄' },
+    { id: 'package', label: '经验包' },
+    { id: 'derived', label: '当前数据' },
+    { id: 'proskills', label: '职业技能' },
+    { id: 'interestskills', label: '业余技能' },
+    { id: 'skilloverview', label: '技能总览' },
+    { id: 'weapons', label: '武器' },
+    { id: 'background', label: '背景故事' },
+    { id: 'items', label: '物品与资产' },
+    { id: 'mythos', label: '克苏鲁神话' },
+    { id: 'relations', label: '人物关系' },
+    { id: 'scenarios', label: '经历过的剧本' },
+    { id: 'overall', label: '总览' },
+  ];
+  if (isEraEra(character.era)) {
+    base.splice(4, 0, { id: 'era', label: '时代特性' });
+  }
+  return base;
+});
 
 const importSteps = [
   { id: 'basic', label: '基本信息' },
@@ -53,6 +62,7 @@ const importSteps = [
 const components = {
   basic: BasicStep,
   package: PackageStep,
+  era: EraStep,
   attributes: AttributesStep,
   luck: LuckStep,
   derived: DerivedStep,
@@ -69,7 +79,7 @@ const components = {
   growth: GrowthStep,
 };
 
-const steps = computed(() => (character.imported ? importSteps : createSteps));
+const steps = computed(() => (character.imported ? importSteps : createSteps.value));
 const current = ref(0);
 
 function go(i) { current.value = i; saveCharacter(); }

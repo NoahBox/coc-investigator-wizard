@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { character, getAllocation, skillValue, skillBaseOf, isOccupationSkill, packageAdjust } from '../../store.js';
-import { skills, getSkill } from '../../data/skills.js';
+import { skills, getSkill, getEraSkillList } from '../../data/skills.js';
 
 function fmtKey(key) {
   return key.replace('(', '（').replace(')', '）').replace(/Ω/g, '');
@@ -30,6 +30,12 @@ const entries = computed(() => {
       const total = (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + (a.package || 0);
       if (total > 0) list.push({ key: sk.name, name: sk.name });
     }
+  });
+  // 扩展时代专属技能（如 帝国知识、拾荒、零重力 等）
+  getEraSkillList(character.era).forEach((sk) => {
+    const a = getAllocation(sk.name);
+    const total = (a.pro || 0) + (a.interest || 0) + (a.growth || 0) + (a.package || 0);
+    if (total > 0) list.push({ key: sk.name, name: sk.name });
   });
   return list;
 });

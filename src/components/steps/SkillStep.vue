@@ -4,14 +4,23 @@ import {
   character, saveCharacter, getAllocation, setAllocation, skillValue, skillBaseOf,
   totalProPoints, totalInterestPoints, usedProPoints, usedInterestPoints,
   occupationSkills, occupationGroupNames, isOccupationSkill, packageAdjust, splitSkillKey, makeSkillKey,
-  jobGroupHints,
+  jobGroupHints, creditRange,
 } from '../../store.js';
-import { skills, skillGroups, skillGroupOrder, getSkill, groupedSkillNames } from '../../data/skills.js';
+import { skills, skillGroups, skillGroupOrder, getSkill, getEraSkill, groupedSkillNames, getEraSkillGroups, getEraGroupOrder } from '../../data/skills.js';
 
 const props = defineProps({ mode: { type: String, default: 'pro' } });
 const isPro = computed(() => props.mode === 'pro');
 const interestTab = ref('探索');
 const pickerTab = ref('探索');
+
+// 神秘冰岛：无职业模板，职业技能点可分配到任意技能（自由分配模式）
+const isIcelandFree = computed(() => character.era === 'iceland');
+// 神秘冰岛：业余技能点禁用（0 点）
+const icelandNoInterest = computed(() => !isPro.value && character.era === 'iceland');
+
+// 技能分组（含当前时代的「时代技能」组）
+const groups = computed(() => getEraSkillGroups(character.era));
+const groupOrder = computed(() => getEraGroupOrder(character.era));
 
 const allocField = computed(() => (isPro.value ? 'pro' : 'interest'));
 const totalPoints = computed(() => (isPro.value ? totalProPoints.value : totalInterestPoints.value));
@@ -57,7 +66,8 @@ function addChild(groupName) {
   saveCharacter();
 }
 function setChildName(groupName, idx, name) {
-  character.groupedOrder[groupName][idx] = name;
+  // 去除首尾空格：避免「盾」与「盾 」这类近重复子技能导致列表中重复行
+  character.groupedOrder[groupName][idx] = name.trim();
   saveCharacter();
 }
 function removeChild(groupName, idx) {
@@ -77,6 +87,14 @@ function setVal(key, v) {
     const cur = valOf(key);
     const max = Math.max(0, totalPoints.value - usedPoints.value + cur);
     final = Math.min(final, max);
+  }
+  // 严格模式：信用评级不可超过职业信用评级上限（仅在有职业时生效）
+  if (isPro.value && key === '信用评级' && character.skillMode === 'strict') {
+    const hasJob = character.jobType === 'custom' || (character.jobType === 'preset' && character.jobName);
+    if (hasJob) {
+      const cap = creditRange.value ? creditRange.value[1] : null;
+      if (cap != null) final = Math.min(final, cap);
+    }
   }
   setAllocation(key, { [allocField.value]: final });
 }
@@ -102,9 +120,9 @@ function allocatable(key) {
 // 展示技能名
 function showName(name) { return name.replace(/Ω/g, ''); }
 
-// 技能说明（悬浮提示）
+// 技能说明（悬浮提示）：先查标准技能，再查当前可用的时代技能
 function skillIntro(name) {
-  return getSkill(name)?.intro || '';
+  return getSkill(name)?.intro || getEraSkill(name)?.intro || '';
 }
 
 // ---- 自定义职业：选择本职技能 ----
@@ -133,12 +151,12 @@ function toggleCustomSkill(key) {
         <h2>{{ isPro ? '职业技能分配' : '业余技能分配' }}</h2>
         <span class="sub">{{ isPro ? 'Occupation Skills' : 'Personal Interest Skills' }}</span>
         <span class="spacer"></span>
-        <span v-if="freeMode" class="small accent">老卡模式 · 不限点数</span>
+        <span v-if="freeMode" class="small accent">老卡模式</span>
         <span v-else class="small">剩余点数 <b class="accent">{{ remaining }}</b> / {{ totalPoints }}</span>
       </div>
       <div class="card-body">
         <!-- 分配模式（仅职业） -->
-        <template v-if="isPro">
+        <template v-if="isPro && !isIcelandFree">
           <label class="lbl">分配模式</label>
           <div class="seg mb-16">
             <span class="seg-item" :class="{ active: character.skillMode === 'strict' }" @click="character.skillMode = 'strict'; saveCharacter()">严格模式</span>
@@ -158,10 +176,10 @@ function toggleCustomSkill(key) {
               <span class="small dim">已选 {{ character.customSkills.length }} / 8</span>
             </div>
             <div class="tabs">
-              <span v-for="g in skillGroupOrder" :key="g" class="tab" :class="{ active: pickerTab === g }" @click="pickerTab = g">{{ g }}</span>
+              <span v-for="g in groupOrder" :key="g" class="tab" :class="{ active: pickerTab === g }" @click="pickerTab = g">{{ g }}</span>
             </div>
             <div class="picker-list">
-              <template v-for="name in skillGroups[pickerTab]" :key="name">
+              <template v-for="name in groups[pickerTab]" :key="name">
                 <label v-if="name !== '自定义'" class="checkbox picker-item">
                   <input
                     type="checkbox"
@@ -170,7 +188,7 @@ function toggleCustomSkill(key) {
                     @change="toggleCustomSkill(name)"
                   />
                   <span class="box">✓</span>
-                  <span :class="{ faint: name === '克苏鲁神话' }">{{ showName(name) }}</span>
+                  <span :class="{ faint: name === '克苏鲁神话' }" :title="skillIntro(name)">{{ showName(name) }}</span>
                   <span v-if="name === '克苏鲁神话'" class="small faint">（不可选）</span>
                 </label>
               </template>
@@ -178,8 +196,8 @@ function toggleCustomSkill(key) {
           </div>
         </div>
 
-        <!-- 职业技能：本职技能 + 信用评级列表 -->
-        <div v-if="isPro">
+        <!-- 职业技能：本职技能 + 信用评级列表（神秘冰岛无职业模板，走下方自由分配界面） -->
+        <div v-if="isPro && !isIcelandFree">
           <div class="skill-row header small dim" :class="{ growth: showGrowth }">
             <span class="s-name">技能</span><span class="s-base">基础</span><span v-if="showGrowth" class="s-growth">成长</span><span class="s-alloc">分配</span><span class="s-total">总值</span>
           </div>
@@ -212,15 +230,16 @@ function toggleCustomSkill(key) {
           </template>
         </div>
 
-        <!-- 业余技能：分类标签页 -->
-        <div v-else>
+        <!-- 业余技能 / 神秘冰岛职业技能自由分配：分类标签页 -->
+        <div v-else-if="!isPro || isIcelandFree">
+          <p v-if="icelandNoInterest" class="warn-text mb-8">神秘冰岛：业余技能点不可用（0 点）——全部点数已并入「职业技能」步骤的自由分配（教育×4+智力×2）。</p>
           <div class="tabs">
-            <span v-for="g in skillGroupOrder" :key="g" class="tab" :class="{ active: interestTab === g }" @click="interestTab = g">{{ g }}</span>
+            <span v-for="g in groupOrder" :key="g" class="tab" :class="{ active: interestTab === g }" @click="interestTab = g">{{ g }}</span>
           </div>
           <div class="skill-row header small dim mt-8" :class="{ pulp: isPulp, growth: showGrowth }">
             <span class="s-name">技能</span><span class="s-base">基础</span><span v-if="isPulp" class="s-pro">职业点</span><span v-if="showGrowth" class="s-growth">成长</span><span class="s-alloc">分配</span><span class="s-total">总值</span>
           </div>
-          <template v-for="name in skillGroups[interestTab]" :key="name">
+          <template v-for="name in groups[interestTab]" :key="name">
             <!-- 普通技能 -->
             <div v-if="!groupedSkillNames.includes(name)" class="skill-row" :class="{ pulp: isPulp, growth: showGrowth }">
               <span class="s-name" :class="{ faint: !allocatable(name) }" :title="skillIntro(name)">{{ showName(name) }}</span>
@@ -272,7 +291,7 @@ function toggleCustomSkill(key) {
         </div>
 
         <!-- 分组技能也需在本职技能中处理（有子技能的），按分组名去重渲染 -->
-        <template v-if="isPro">
+        <template v-if="isPro && !isIcelandFree">
           <template v-for="groupName in occupationGroupNames" :key="groupName">
             <div class="group-block">
               <div class="group-head">

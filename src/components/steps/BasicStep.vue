@@ -1,33 +1,50 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { character, saveCharacter, currentJob, splitSkillKey } from '../../store.js';
-import { jobGroups, EXP_BOOKS, getExpBooks } from '../../data/jobs.js';
+import { jobGroups, EXP_BOOKS, getExpBooks, eraJobGroups } from '../../data/jobs.js';
+import { ERAS, shieldWeaponNames } from '../../data/eras.js';
 import { ATTR_LABELS, ATTR_KEYS } from '../../data/rules.js';
 import AvatarCropper from '../AvatarCropper.vue';
 
 const countries = ['美国', '中国', '日本'];
 const eras = [
-  { v: 'modern', label: '现代' },
-  { v: '1920s', label: '1920s' },
+  { v: 'modern', label: '现代', desc: '当代世界设定，信息时代的技术与全球化背景下的现代克苏鲁调查。' },
+  { v: '1920s', label: '1920s', desc: '经典时代设定，爵士时代与禁酒令时期的美国，克苏鲁的呼唤原初背景。' },
+  // 《克苏鲁时空穿梭》7个扩展时代
+  ...ERAS.map(e => ({ v: e.id, label: e.short, desc: e.desc })),
 ];
-const customCountry = ref('');
 
 // 按扩展书开关过滤职业列表：关闭某来源的开关后，该来源（及同时带有该标记）的职业不再出现在下拉框
 const filteredJobGroups = computed(() => {
-  return jobGroups
+  const result = jobGroups
     .map(([group, list]) => [group, list.filter((j) => {
       const books = getExpBooks(j);
       if (!books.length) return true; // 基础职业始终显示
       return books.every((b) => character.expBooks[b] !== false);
     })])
     .filter(([, list]) => list.length > 0);
+  // 选择了扩展时代：自动将该时代的范例职业组附加到列表末尾
+  const eraGroup = eraJobGroups[character.era];
+  if (eraGroup && eraGroup.jobs.length) result.push([eraGroup.label, eraGroup.jobs]);
+  return result;
 });
 
-function onCountry(c) {
-  if (countries.includes(c)) character.country = c;
-  else character.country = customCountry.value;
-  saveCharacter();
-}
+// 切换时代：清除先前时代保存的数据（掷骰修正/派系/防具/盾牌/盾牌武器），
+// 若当前职业不属于新时代的可见列表则清空（避免残留其他时代的职业）
+watch(() => character.era, () => {
+  character.eraEffects = {};
+  character.eraFaction = '';
+  character.eraArmor = '';
+  character.eraShield = '';
+  character.weapons = (character.weapons || []).filter(w => !shieldWeaponNames.includes(w.name));
+  if (!character.jobName) return;
+  const visible = new Set();
+  filteredJobGroups.value.forEach(([, list]) => list.forEach((j) => visible.add(j)));
+  if (!visible.has(character.jobName)) character.jobName = '';
+});
+
+// 神秘冰岛：无职业模板（提示文案）
+const isIcelandFree = computed(() => character.era === 'iceland');
 
 function showName(name) { return (name || '').replace(/Ω/g, ''); }
 
@@ -154,7 +171,7 @@ function removeAvatar() {
               <option v-for="c in countries" :key="c" :value="c">{{ c }}</option>
               <option value="其他">其他（填写）</option>
             </select>
-            <input v-if="character.country === '其他'" class="inp mt-8" v-model="customCountry" @input="onCountry('其他')" placeholder="填写国家" />
+            <input v-if="character.country === '其他'" class="inp mt-8" v-model="character.countryOther" @input="saveCharacter" placeholder="填写国家" />
           </div>
           <div>
             <label class="lbl">故乡</label>
@@ -167,14 +184,14 @@ function removeAvatar() {
         </div>
 
         <div class="grid-4">
-          <div>
-            <label class="lbl">时代</label>
-            <div class="seg">
-              <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" @click="character.era = e.v; saveCharacter()">{{ e.label }}</span>
+          <div class="era-col">
+            <label class="lbl era">时代</label>
+            <div class="seg era-seg">
+              <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" :title="e.desc" @click="character.era = e.v; saveCharacter()">{{ e.label }}</span>
             </div>
           </div>
           <div>
-            <label class="lbl">老卡模式（属性点与技能点分配无视上限）</label>
+            <label class="lbl veteran">老卡模式（点数分配无上限）</label>
             <label class="switch" style="margin-top:9px">
               <input type="checkbox" v-model="character.legacyMode" @change="saveCharacter" />
               <span class="track"></span>
@@ -188,6 +205,10 @@ function removeAvatar() {
     <div class="card mt-16">
       <div class="card-title"><h2>职业</h2><span class="sub">Occupation</span></div>
       <div class="card-body">
+        <div v-if="isIcelandFree" class="hint mt-8">
+          神秘冰岛无职业模板：所有调查员不受职业限制，可直接获得 <b>教育×4+智力×2</b> 的技能点数并分配到任意技能上（见「职业技能」步骤）。
+        </div>
+        <template v-else>
         <div class="job-head">
           <div class="seg">
             <span class="seg-item" :class="{ active: character.jobType === 'preset' }" @click="character.jobType = 'preset'; saveCharacter()">选择职业</span>
@@ -256,12 +277,17 @@ function removeAvatar() {
           </div>
           <p class="hint mt-8">本职技能将在「职业技能」步骤中选择。</p>
         </template>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* 时代选择：占满整行（grid-4 为 2 列），允许格子收缩；按钮自动适配宽度、空间不足自动换行 */
+.era-col { grid-column: 1 / -1; min-width: 0; }
+.era-seg { display: flex; width: 100%; flex-wrap: wrap; }
+.era-seg .seg-item { flex: 1 1 auto; min-width: 56px; text-align: center; white-space: nowrap; }
 .basic-top { display: flex; align-items: stretch; gap: 20px; }
 .avatar-col { display: flex; flex-direction: column; width: 160px; }
 .avatar-preview {
@@ -292,4 +318,5 @@ function removeAvatar() {
   .avatar-col { flex-direction: row; gap: 12px; width: auto; }
   .avatar-preview { flex: none; width: 160px; height: 84px; min-height: 0; }
 }
+.lbl.veteran { width: fit-content; }
 </style>

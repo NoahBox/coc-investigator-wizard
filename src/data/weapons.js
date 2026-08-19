@@ -109,6 +109,39 @@ export const weapons = [
   { name: '阔剑地雷', skill: '爆破', dam: '6D6/20码', tho: 1, range: '即地', round: '1', num: '一次性', price: '', err: '99', time: '现代' },
   { name: '火焰喷射器', skill: '射击(喷射器)', dam: '2D6+烧', tho: 1, range: '25', round: '1', num: '至少10', price: '', err: '93', time: '1920s，现代' },
   { name: 'M72式单发轻型反坦克炮', skill: '射击(重武器)', dam: '8D10/1码', tho: 1, range: '150', round: '1', num: '1', price: '', err: '98', time: '现代' },
+  // ============================================================
+  // 扩展时代范例武器（源自《克苏鲁时空穿梭》第四章《剑见箭》表3、伊卡洛斯能量武器）
+  // time 字段标记所属时代分类：不败 / 黑暗时代 / 神秘冰岛 / 伊卡洛斯 / 盾牌
+  // ============================================================
+  // ---- 克苏鲁不败 ----
+  { name: '皮护手(Cestus)', skill: '格斗(斗殴)', dam: '1D6', tho: 0, range: '接触', round: '1', num: '', price: '50 赛斯特斯', err: '', time: '不败' },
+  { name: '短矛(Pilum)', skill: '格斗(矛)', dam: '1D8', tho: 1, range: '接触', round: '1', num: '', price: '45 赛斯特斯', err: '', time: '不败' },
+  { name: '短剑(Gladius)', skill: '格斗(剑)', dam: '1D6+1', tho: 1, range: '接触', round: '1', num: '', price: '175 赛斯特斯', err: '', time: '不败' },
+  { name: '三叉戟(Trident)', skill: '格斗(矛)', dam: '1D6', tho: 1, range: '接触', round: '1', num: '', price: '75 赛斯特斯', err: '', time: '不败' },
+  // ---- 克苏鲁黑暗时代 ----
+  { name: '巨斧', skill: '格斗(斧)', dam: '2D6', tho: 1, range: '接触', round: '1', num: '', price: '100 便士', err: '', time: '黑暗时代' },
+  { name: '连枷', skill: '格斗(链枷)', dam: '1D6', tho: 1, range: '接触', round: '1', num: '', price: '80 便士', err: '', time: '黑暗时代' },
+  { name: '短矛', skill: '格斗(矛)', dam: '1D6', tho: 1, range: '接触', round: '1', num: '', price: '40 便士', err: '', time: '黑暗时代' },
+  { name: '长剑', skill: '格斗(剑)', dam: '1D8', tho: 1, range: '接触', round: '1', num: '', price: '210 便士', err: '', time: '黑暗时代' },
+  // ---- 神秘冰岛 ----
+  { name: '战斧', skill: '格斗(斧)', dam: '1D8', tho: 1, range: '接触', round: '1', num: '', price: '', err: '', time: '神秘冰岛' },
+  { name: '双手战斧', skill: '格斗(斧)', dam: '2D6', tho: 1, range: '接触', round: '1', num: '', price: '', err: '', time: '神秘冰岛' },
+  { name: '阔剑', skill: '格斗(剑)', dam: '1D8', tho: 1, range: '接触', round: '1', num: '', price: '', err: '', time: '神秘冰岛' },
+  { name: '日耳曼砍刀', skill: '格斗(剑)', dam: '1D6+1', tho: 1, range: '接触', round: '1', num: '', price: '', err: '', time: '神秘冰岛' },
+  { name: '长矛', skill: '格斗(矛)', dam: '2D6', tho: 1, range: '接触', round: '1', num: '', price: '', err: '', time: '神秘冰岛' },
+  { name: '维京戟', skill: '格斗(长武器)', dam: '3D6', tho: 1, range: '接触', round: '1', num: '', price: '', err: '', time: '神秘冰岛' },
+  { name: '弓', skill: '射击(弓弩)', dam: '1D6+半DB', tho: 0, range: '30', round: '1', num: '1', price: '', err: '97', time: '神秘冰岛' },
+  // ---- 克苏鲁伊卡洛斯（能量武器）----
+  { name: '脉冲集束手枪', skill: '射击(能量武器)', dam: '2D6', tho: 1, range: '15', round: '1', num: '10 发', price: '', err: '93', time: '伊卡洛斯' },
+  { name: '脉冲集束步枪', skill: '射击(能量武器)', dam: '3D6+2', tho: 1, range: '30', round: '1', num: '10 发', price: '', err: '93', time: '伊卡洛斯' },
+  // ---- 盾牌（克苏鲁不败 / 黑暗时代 / 神秘冰岛，见《剑见箭》表2）----
+  // 选择盾牌后会自动添加进武器列表；护甲值见 eraShields
+  { name: '简易盾', skill: '格斗(盾)', dam: '1D2+DB', tho: 0, range: '接触', round: '1', num: '', price: '', err: '', time: '盾牌' },
+  { name: '小圆盾', skill: '格斗(盾)', dam: '1D2+DB', tho: 0, range: '接触', round: '1', num: '', price: '', err: '', time: '盾牌' },
+  { name: '木圆盾', skill: '格斗(盾)', dam: '1D3+DB', tho: 0, range: '接触', round: '1', num: '', price: '', err: '', time: '盾牌' },
+  { name: '维京圆盾', skill: '格斗(盾)', dam: '2D4+DB', tho: 0, range: '接触', round: '1', num: '', price: '', err: '', time: '盾牌' },
+  { name: '筝形盾', skill: '格斗(盾)', dam: '1D4+1+DB', tho: 0, range: '接触', round: '1', num: '', price: '', err: '', time: '盾牌' },
+  { name: '长盾、塔盾', skill: '格斗(盾)', dam: '1D4+1+DB', tho: 0, range: '接触', round: '1', num: '', price: '', err: '', time: '盾牌' },
 ];
 
 export const weaponGroups = {
@@ -121,9 +154,25 @@ export const weaponGroups = {
   狙击步枪: ['巴雷特M82', 'PTRD-41反坦克步枪'],
   机枪: ['1882年式加特林', 'M1918式勃朗宁自动步枪', '勃朗宁M1917A1(7.62mm)', '布伦轻机枪', '路易斯Ⅰ型机枪', 'GE M134式7.62mm速射机枪', 'FN 米尼米，弹夹/弹带', '维克斯.303机枪'],
   其它: ['莫洛托夫鸡尾酒', '信号枪(信号弹枪)', 'M79式40mm榴弹发射器', '炸药棒', '雷管', '爆破筒', '塑胶炸弹(C-4)，4盎司', '手榴弹', '81mm迫击炮', '75mm野战火炮', '120mm坦克主炮', '5英寸(127mm)舰炮', '反步兵地雷', '阔剑地雷', '火焰喷射器', 'M72式单发轻型反坦克炮'],
+  // ---- 扩展时代武器分类（源自《克苏鲁时空穿梭》）----
+  不败: ['皮护手(Cestus)', '短矛(Pilum)', '短剑(Gladius)', '三叉戟(Trident)'],
+  黑暗时代: ['巨斧', '连枷', '短矛', '长剑'],
+  神秘冰岛: ['战斧', '双手战斧', '阔剑', '日耳曼砍刀', '长矛', '维京戟', '弓'],
+  伊卡洛斯: ['脉冲集束手枪', '脉冲集束步枪'],
+  盾牌: ['简易盾', '小圆盾', '木圆盾', '维京圆盾', '筝形盾', '长盾、塔盾'],
 };
 
-export const weaponGroupOrder = ['常规', '手枪', '半自动步枪', '全自动步枪', '霰弹枪', '冲锋枪', '狙击步枪', '机枪', '其它'];
+// 时代武器分类 → 所属时代（空字符串=所有时代可见；数组=多个时代可见）
+export const weaponGroupEra = {
+  常规: '', 手枪: '', 半自动步枪: '', 全自动步枪: '', 霰弹枪: '', 冲锋枪: '', 狙击步枪: '', 机枪: '', 其它: '',
+  不败: 'invictus',
+  黑暗时代: 'dark',
+  神秘冰岛: 'iceland',
+  伊卡洛斯: 'icarus',
+  盾牌: ['invictus', 'dark', 'iceland'],
+};
+
+export const weaponGroupOrder = ['常规', '手枪', '半自动步枪', '全自动步枪', '霰弹枪', '冲锋枪', '狙击步枪', '机枪', '其它', '不败', '黑暗时代', '神秘冰岛', '伊卡洛斯', '盾牌'];
 
 const weaponMap = new Map();
 weapons.forEach(w => weaponMap.set(w.name, w));

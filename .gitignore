@@ -1,4 +1,6 @@
+_*test*
+coc-investigator-wizard*.html
+
 .*/
 node_modules/
-coc-investigator-wizard*.html
 dist/

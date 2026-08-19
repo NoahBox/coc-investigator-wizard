@@ -2,10 +2,11 @@
 import { ref, computed } from 'vue';
 import {
   character, derived, getAllocation, skillValue, skillBaseOf, effectiveAttr, makeSkillKey, packageAdjust,
-  creditRatingValue, livingStandard, cashInfo, currency, isOccupationSkill,
+  creditRatingValue, livingStandard, cashInfo, currency, isOccupationSkill, eraInfo,
 } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
-import { skillGroups, skillGroupOrder, getSkill } from '../../data/skills.js';
+import { skillGroups, skillGroupOrder, getSkill, getEraSkillGroups, getEraGroupOrder } from '../../data/skills.js';
+import { getEra } from '../../data/eras.js';
 import { downloadJSON, copySt, downloadSt, exportImages, exportPDFPages, downloadText } from '../../export.js';
 import { exportSaikoBase64 } from '../../saiko.js';
 
@@ -15,14 +16,31 @@ const busy = ref('');
 
 const jobDisplay = computed(() => character.jobType === 'preset' ? character.jobName : (character.customJobName || '自定义'));
 const genderDisplay = computed(() => character.gender === '其他' ? (character.genderOther || '其他') : character.gender);
+const countryDisplay = computed(() => character.country === '其他' ? (character.countryOther || '其他') : character.country);
 const attrSum = computed(() => ATTR_KEYS.reduce((s, k) => s + effectiveAttr(k), 0));
 
-// 技能表数据（按分类，展开分组子技能）
+// 时代显示：扩展时代显示全称（如 克苏鲁不败），否则 1920s / 现代
+const eraLabel = computed(() => {
+  if (character.era === '1920s') return '1920s';
+  if (character.era === 'modern') return '现代';
+  const e = getEra(character.era);
+  return e ? e.label : character.era;
+});
+
+// 防具 / 盾牌（时代特性步骤选择）
+const armorText = computed(() => [character.eraArmor, character.eraShield].filter(Boolean).join(' / '));
+
+// 时代信息（派系 / 随机表结果）：只读展示于反面背景故事区
+const eraInfoText = computed(() => eraInfo.value.join('\n'));
+
+// 技能表数据（按分类，展开分组子技能；含时代技能组）
 const skillTable = computed(() => {
   const result = [];
-  skillGroupOrder.forEach((groupName) => {
+  const groups = getEraSkillGroups(character.era);
+  const order = getEraGroupOrder(character.era);
+  order.forEach((groupName) => {
     const rows = [];
-    (skillGroups[groupName] || []).forEach((name) => {
+    (groups[groupName] || []).forEach((name) => {
       if (name === '自定义') {
         // 自定义技能：显示用户填写的自定义技能名
         const customChildren = (character.groupedOrder['自定义'] || []).filter((c) => c);
@@ -55,14 +73,24 @@ function skillRow(key) {
   const a = getAllocation(key);
   const base = skillBaseOf(key);
   const total = skillValue(key);
+  // 信用评级 / 克苏鲁神话：基础值默认为 0，应显示 0 而非空白
+  const zeroShow = key === '信用评级' || key === '克苏鲁神话';
   return {
     base,
     pro: a.pro || 0,
     interest: a.interest || 0,
     growth: (a.growth || 0) + packageAdjust(key),
     total,
-    showTotal: total > 0 && (total !== base || !!a.pro),
+    zeroShow,
+    showTotal: zeroShow || (total > 0 && (total !== base || !!a.pro)),
   };
+}
+
+// 基础值显示：信用评级/克苏鲁神话显示 0，其余为 0 时留空
+function baseDisplay(key) {
+  const r = skillRow(key);
+  if (r.zeroShow) return r.base;
+  return r.base || '';
 }
 
 // 物品/资产/神话等纯文本
@@ -122,14 +150,15 @@ async function doSaikoBase64() {
             <div class="body info-body">
               <div class="writable-row"><span class="lbl">姓名</span><span class="line grow">{{ character.name }}</span></div>
               <div class="writable-row"><span class="lbl">玩家</span><span class="line grow">{{ character.player }}</span></div>
-              <div class="writable-row"><span class="lbl">时代</span><span class="line grow">{{ character.era === '1920s' ? '1920s' : '现代' }}</span></div>
+              <div class="writable-row"><span class="lbl">时代</span><span class="line grow">{{ eraLabel }}</span></div>
+              <div class="writable-row" v-if="character.eraFaction"><span class="lbl">派系</span><span class="line grow">{{ character.eraFaction }}</span></div>
               <div class="info-row">
                 <div class="writable-row grow"><span class="lbl">职业</span><span class="line grow">{{ jobDisplay }}</span></div>
                 <div class="writable-row grow"><span class="lbl">性别</span><span class="line grow">{{ genderDisplay }}</span></div>
               </div>
               <div class="info-row">
                 <div class="writable-row grow"><span class="lbl">年龄</span><span class="line grow">{{ character.age }}</span></div>
-                <div class="writable-row grow"><span class="lbl">国家</span><span class="line grow">{{ character.country }}</span></div>
+                <div class="writable-row grow"><span class="lbl">国家</span><span class="line grow">{{ countryDisplay }}</span></div>
               </div>
               <div class="info-row">
                 <div class="writable-row grow"><span class="lbl">住地</span><span class="line grow">{{ character.residence }}</span></div>
@@ -166,7 +195,7 @@ async function doSaikoBase64() {
             </div>
             <div class="header luck-header"><h1 class="heading"><span class="title">幸运</span><span class="subtitle">Luck</span></h1></div>
             <div class="body luck-body">
-              <div class="writable-row"><span class="lbl">幸运</span><span class="line grow center big">{{ effectiveAttr('luc') }}</span></div>
+              <div class="writable-row"><span class="lbl">幸运</span><span class="line grow center">{{ effectiveAttr('luc') }}</span></div>
             </div>
           </section>
         </div>
@@ -224,7 +253,7 @@ async function doSaikoBase64() {
                     <tr v-for="(row, ri) in sec.rows" :key="row.key">
                       <td v-if="ri === 0" :rowspan="sec.rows.length" class="td-grp">{{ sec.groupName }}</td>
                       <td class="td-name" :class="{ odd: si % 2 === 0 }">{{ row.label }}<span v-if="isOccupationSkill(row.key)" class="occ-mark">※</span></td>
-                      <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).base || '' }}</td>
+                      <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ baseDisplay(row.key) }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).pro || '' }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).interest || '' }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).growth || '' }}</td>
@@ -243,7 +272,7 @@ async function doSaikoBase64() {
                     <tr v-for="(row, ri) in sec.rows" :key="row.key">
                       <td v-if="ri === 0" :rowspan="sec.rows.length" class="td-grp">{{ sec.groupName }}</td>
                       <td class="td-name" :class="{ odd: si % 2 === 0 }">{{ row.label }}<span v-if="isOccupationSkill(row.key)" class="occ-mark">※</span></td>
-                      <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).base || '' }}</td>
+                      <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ baseDisplay(row.key) }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).pro || '' }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).interest || '' }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).growth || '' }}</td>
@@ -285,15 +314,15 @@ async function doSaikoBase64() {
           <section class="paper-section battle">
             <div class="header"><h1 class="heading"><span class="title">战斗</span><span class="subtitle">Combat</span></h1></div>
             <div class="body battle-body">
-              <div class="writable-row"><span class="lbl">伤害加值<span class="hint-text">DB</span></span><span class="line grow center">{{ derived.db }}</span></div>
+              <div class="writable-row"><span class="lbl">伤害加值</span><span class="line grow center">{{ derived.db }}</span></div>
               <div class="writable-row"><span class="lbl">体格</span><span class="line grow center">{{ derived.build }}</span></div>
-              <div class="writable-row"><span class="lbl">护甲</span><span class="line grow center"></span></div>
+              <div class="writable-row"><span class="lbl">护甲</span><span class="line grow center">{{ armorText }}</span></div>
               <div class="writable-row"><span class="lbl">移动力</span><span class="line grow center">{{ derived.mov }}</span></div>
             </div>
           </section>
         </div>
 
-        <div class="copyright">©「克苏鲁的呼唤」7版人物卡</div>
+        <div class="copyright">「克苏鲁的呼唤」7版人物卡</div>
       </div>
     </div>
 
@@ -305,6 +334,10 @@ async function doSaikoBase64() {
           <div class="header"><h1 class="heading"><span class="title">背景故事</span><span class="subtitle">Story</span></h1></div>
           <div class="body story-body">
             <div class="story-col col-2">
+              <div v-if="eraInfoText" class="area">
+                <span class="area-label">时代特性</span>
+                <div class="area-text">{{ eraInfoText }}</div>
+              </div>
               <div v-for="f in [['app','形象描述'],['belief','思想与信念'],['importantPerson','重要之人'],['place','意义非凡之地'],['item','宝贵之物'],['trait','特质'],['scar','伤口与疤痕'],['mad','精神症状']]" :key="f[0]" class="area">
                 <span class="area-label">{{ f[1] }}</span>
                 <div class="area-text">{{ bg[f[0]] }}</div>
@@ -409,7 +442,7 @@ async function doSaikoBase64() {
 .paper-section .body { flex: 1; display: flex; flex-direction: column; }
 
 /* 填写行（标签 + 下划线） */
-.writable-row { display: flex; align-items: flex-end; gap: 0.4em; line-height: 1; padding: 0.15em 0; }
+.writable-row { display: flex; align-items: flex-end; gap: 0.4em; line-height: 1; padding: 0em 0; }
 .writable-row .lbl { display: flex; flex-direction: column; align-items: center; flex: none; line-height: 1; }
 .writable-row .hint-text { font-size: 0.6em; color: #777; transform: scale(0.9); }
 .writable-row .line {
@@ -443,21 +476,29 @@ async function doSaikoBase64() {
 }
 .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
 .avatar-box .avatar-empty { color: #bbb; font-size: 0.8em; }
-.luck-body { padding: 0.4em 0.6em 0.6em; justify-content: center; }
+.luck-body { padding: 0.2em 0.4em 0.2em; justify-content: center; }
 
 /* 衍生属性 */
 .derive-sections { display: flex; gap: 0.8em; align-items: stretch; }
 .derive-sections .paper-section { flex: 1 1 0; }
+/* 理智/生命/魔法三栏收窄，让出的宽度加到「精神状态」栏 */
+.derive-sections .sanity,
+.derive-sections .hp,
+.derive-sections .mp { flex: 0.9 1 0; }
+.derive-sections .mental-status { flex: 1.3 1 0; }
 .paper-section .units { flex-direction: row; align-items: center; justify-content: space-around; padding: 0.4em 0.6em; }
 .unit { display: flex; flex-direction: column; align-items: center; gap: 0.2em; line-height: 1; }
 .u-label { font-size: 0.8em; color: #555; }
-.u-val { font-size: 1.3em; font-weight: bold; }
+.u-val { font-size: 1em; font-weight: bold; }
 .u-slash { color: #999; margin: 0 0.15em; }
 .u-divider { border-right: 1px solid #c2c2c2; align-self: stretch; }
 .paper-section .status-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .status { display: flex; gap: 0.4em; align-items: center; padding: 0.35em; line-height: 1; }
 .status .cb { width: 1em; height: 1em; border: 1px solid var(--p-black); background: var(--p-white); flex: none; }
 .mental-status .status-grid { grid-template-rows: 1fr 1fr; grid-auto-flow: column; }
+/* 身体状态（重伤/昏迷/濒死/死亡）行间距收紧 */
+.body-status .status-grid { row-gap: 0; }
+.body-status .status { padding: 0.15em 0.35em; }
 
 /* 技能表 */
 .skill-section { flex: 1; }
@@ -492,7 +533,7 @@ async function doSaikoBase64() {
 
 /* 战斗 */
 .battle { flex: 0.7 1 0; }
-.battle-body { padding: 0.6em 0.6em 1em 0.2em; justify-content: space-between; gap: 0.3em; }
+.battle-body { padding: 0.6em 0.6em 1em 0.2em; justify-content: space-between; gap: 0em; }
 .battle .writable-row .lbl { width: 4.4em; align-items: flex-start; }
 
 .copyright { margin-top: auto; align-self: flex-end; color: #4b4e53; font-size: 0.72em; text-align: right; transform: scale(0.9); transform-origin: right bottom; flex: none; }

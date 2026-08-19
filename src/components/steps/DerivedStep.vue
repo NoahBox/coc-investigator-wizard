@@ -41,9 +41,9 @@ function bumpOverride(key, delta) {
     <!-- ============ 导入编辑模式：可调整基础属性与衍生 ============ -->
     <template v-if="character.imported">
       <div class="card">
-        <div class="card-title"><h2>属性与衍生</h2><span class="sub">Attributes & Derived</span></div>
+        <div class="card-title"><h2>属性与衍生属性调整</h2><span class="sub">Attributes & Derived</span></div>
         <div class="card-body">
-          <h3 class="mb-8">基础属性</h3>
+          <h3 class="mb-8">基础属性调整</h3>
           <div class="num-grid">
             <div v-for="k in attrList" :key="k" class="num-field">
               <div class="num-label serif">{{ ATTR_LABELS[k] }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
@@ -57,10 +57,10 @@ function bumpOverride(key, delta) {
 
           <div class="divider"></div>
 
-          <h3 class="mb-8">生命 / 魔法 / 理智</h3>
+          <h3 class="mb-8">生命 / 魔法 / 理智 调整</h3>
           <div class="num-grid">
             <div class="num-field">
-              <div class="num-label">生命值 HP（当前）</div>
+              <div class="num-label">当前生命值 HP</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('hp', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.hp ?? derived.hp" @input="setOverride('hp', $event.target.value)" />
@@ -68,7 +68,7 @@ function bumpOverride(key, delta) {
               </div>
             </div>
             <div class="num-field">
-              <div class="num-label">魔法值 MP（当前）</div>
+              <div class="num-label">当前魔法值 MP</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('mp', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.mp ?? derived.mp" @input="setOverride('mp', $event.target.value)" />
@@ -76,7 +76,7 @@ function bumpOverride(key, delta) {
               </div>
             </div>
             <div class="num-field">
-              <div class="num-label">理智值 SAN（当前）</div>
+              <div class="num-label">当前理智值 SAN</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('san', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.san ?? derived.san" @input="setOverride('san', $event.target.value)" />
@@ -93,9 +93,6 @@ function bumpOverride(key, delta) {
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <h3 class="mb-8">自动计算（只读）</h3>
           <div class="derived-readonly">
             <div class="ro-item"><span class="ro-label">生命值上限</span><span class="ro-val serif">{{ derived.hpMax }}</span></div>
             <div class="ro-item"><span class="ro-label">魔法值上限</span><span class="ro-val serif">{{ derived.mpMax }}</span></div>
@@ -103,7 +100,6 @@ function bumpOverride(key, delta) {
             <div class="ro-item"><span class="ro-label">伤害加值</span><span class="ro-val serif">{{ derived.db }}</span></div>
             <div class="ro-item"><span class="ro-label">移动力</span><span class="ro-val serif">{{ derived.mov }}</span></div>
           </div>
-          <p class="hint mt-8">基础属性与生命/魔法/理智可手动调整；体格、伤害加值、移动力由属性自动计算。</p>
         </div>
       </div>
     </template>
@@ -178,4 +174,5 @@ function bumpOverride(key, delta) {
 .ro-label { color: var(--text-dim); font-size: 0.85rem; }
 .ro-val { font-size: 1.2rem; }
 @media (max-width: 860px) { .num-grid { grid-template-columns: repeat(2, 1fr); } }
+.derived-readonly { padding-top: 12px; }
 </style>

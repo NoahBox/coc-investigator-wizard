@@ -204,10 +204,14 @@ export const CURRENCIES = {
   CNY: { symbol: '¥', name: '人民币', rate: 7.2 },
   JPY: { symbol: '¥', name: '日元', rate: 150 },
   SILVER: { symbol: '银元', name: '银元/大洋', rate: 1 },
+  GBP: { symbol: '£', name: '英镑', rate: 5 },          // 克苏鲁煤气灯：1英镑=5美元
+  BARTER: { symbol: '以物易物', name: '以物易物', rate: 1 }, // 不败/黑暗/冰岛：无货币，物物交换
 };
 
 // 根据国家和时代确定货币
 export function getCurrency(country, era) {
+  if (era === 'gaslight') return CURRENCIES.GBP;
+  if (era === 'invictus' || era === 'dark' || era === 'iceland') return CURRENCIES.BARTER;
   if (country === '中国') {
     return era === '1920s' ? CURRENCIES.SILVER : CURRENCIES.CNY;
   }

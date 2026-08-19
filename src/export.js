@@ -1,8 +1,8 @@
 // ============================================================
 // 导出工具：JSON / 骰娘 .st 字符串 / 图片 / PDF
 // ============================================================
-import { character, skillValue, getAllocation, skillBase, splitSkillKey, effectiveAttributes } from './store.js';
-import { skills, skillNameAlias } from './data/skills.js';
+import { character, skillValue, getAllocation, effectiveAttributes } from './store.js';
+import { skills, skillNameAlias, getEraSkillList } from './data/skills.js';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -91,12 +91,17 @@ export function buildStString() {
         }
       });
     } else {
-      const val = skillValue(name);
-      const alloc = getAllocation(name);
-      const base = skillBase(name, a);
-      const hasPoint = (alloc.pro || 0) + (alloc.interest || 0) + (alloc.growth || 0) + (alloc.package || 0) > 0;
-      if (base > 0 || hasPoint) emit(name, val);
+      // 所有标准技能：无论是否分配点数，均输出当前值（含初始值，如 信用评级0 / 克苏鲁神话0）
+      emit(name, skillValue(name));
     }
+  });
+
+  // 时代技能（当前时代的扩展技能，如 战术/造梦/拾荒 等）：
+  // 无论是否分配点数，均输出当前值（含初始值，如 预言0 / 梦境学问0）
+  getEraSkillList(character.era).forEach((sk) => {
+    const name = sk.name;
+    if (!name || emitted.has(name)) return;
+    emit(name, skillValue(name));
   });
 
   return parts.join(' ');

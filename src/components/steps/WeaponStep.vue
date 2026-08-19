@@ -1,17 +1,25 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { character, saveCharacter, currentPackage } from '../../store.js';
-import { weapons, weaponGroups, weaponGroupOrder, getWeapon } from '../../data/weapons.js';
+import { weapons, weaponGroups, weaponGroupOrder, weaponGroupEra, getWeapon } from '../../data/weapons.js';
 
 const selected = ref('');
 const search = ref('');
 const customName = ref('');
 
-// 过滤武器（按搜索词）
+// 分组是否在当前时代可见（标准分组始终可见；时代分组仅对应时代可见）
+function groupVisible(g) {
+  const era = weaponGroupEra[g];
+  if (!era) return true;
+  return Array.isArray(era) ? era.includes(character.era) : era === character.era;
+}
+
+// 过滤武器（按搜索词 + 时代）
 const filteredGroups = computed(() => {
   const q = search.value.trim();
   const result = [];
   weaponGroupOrder.forEach((g) => {
+    if (!groupVisible(g)) return;
     const names = weaponGroups[g].filter(n => !q || n.includes(q));
     if (names.length) result.push([g, names]);
   });

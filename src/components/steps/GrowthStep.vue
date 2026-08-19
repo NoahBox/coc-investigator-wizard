@@ -69,7 +69,7 @@ function doGrowth() {
         </table>
 
         <div class="row mt-16">
-          <button class="btn primary" @click="doGrowth">🎲 成长</button>
+          <button class="btn primary" @click="doGrowth"><font-awesome-icon icon="fa-solid fa-dice" />成长</button>
         </div>
 
         <div v-if="results.length" class="mt-16">

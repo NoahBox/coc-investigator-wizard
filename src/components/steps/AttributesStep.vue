@@ -154,7 +154,7 @@ function attrAdjustment(k) { return 0; }
           <div class="row mb-16">
             <label class="lbl grow" style="margin:0">点数池</label>
             <input class="inp" style="width:100px" type="number" v-model.number="character.pointTotal" @input="saveCharacter" />
-            <span v-if="freeMode" class="small accent">老卡模式 · 不限点数</span>
+            <span v-if="freeMode" class="small accent">老卡模式</span>
             <span v-else class="small dim">剩余 <b class="accent">{{ pointBuyRemaining }}</b></span>
           </div>
           <div class="attr-grid">
@@ -165,7 +165,6 @@ function attrAdjustment(k) { return 0; }
                 <input class="attr-inp" type="number" :value="character.attributes[k] ?? ''" placeholder="—" @input="setAttrValue(k, $event.target.value)" />
                 <button class="btn sm" @click="adjustAttr(k, 5)">+5</button>
               </div>
-              <div class="small faint center mt-8">{{ ATTR_MIN }}–{{ ATTR_MAX }}</div>
             </div>
           </div>
         </template>
@@ -229,7 +228,7 @@ function attrAdjustment(k) { return 0; }
 <style scoped>
 /* 自适应：先挤压卡片宽度，挤到最小值后再重排行/列（auto-fit + minmax）。
    最小列宽取 176px，使内容在 .wizard 最大宽度(1200px)下最多排 4 列。 */
-.attr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 12px; }
+.attr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .attr-pb, .attr-slot { text-align: center; }
 .attr-val { font-size: 1.5rem; font-family: Georgia, serif; min-width: 52px; }
 .attr-inp {

@@ -32,7 +32,7 @@ export const skills = [
   {
     name: '生存', init: 5,
     intro: '在极端环境下生存的知识与技巧，可专业化为具体环境。',
-    group: { show: ['', '', ''], skills: [{ name: '沙漠' }, { name: '森林' }, { name: '荒岛' }, { name: '高山' }, { name: '海上' }] },
+    group: { show: ['', '', ''], skills: [{ name: '沙漠' }, { name: '森林' }, { name: '荒岛' }, { name: '高山' }, { name: '海上' }, { name: '城镇', init: 10 }] },
   },
   { name: '攀爬', init: 20, intro: '借助或不借助工具爬树、墙及垂直表面。' },
   { name: '跳跃', init: 20, intro: '垂直或水平方向跳起、跳下、跳出。' },
@@ -43,7 +43,7 @@ export const skills = [
     intro: '制作、修理物品或制造复制品/赝品。可专业化为具体技艺。',
     group: {
       show: ['', '', ''],
-      skills: ['表演', '音乐', '绘画', '艺术', '摄影', '写作', '书法', '打字', '速记', '伪造', '烹饪', '裁缝', '理发', '技术制图', '耕作', '木工', '铁匠', '焊接', '管道工'].map(n => ({ name: n })),
+      skills: ['表演', '音乐', '绘画', '艺术', '摄影', '写作', '书法', '打字', '速记', '伪造', '烹饪', '裁缝', '理发', '技术制图', '耕作', '木工', '铁匠', '焊接', '管道工', '药剂', '制革', '演说', '诗歌', '占卜'].map(n => ({ name: n })),
     },
   },
   { name: '妙手', init: 10, intro: '视觉上遮住、藏匿或掩盖物体。' },
@@ -57,7 +57,7 @@ export const skills = [
   {
     name: '驾驶', init: 1,
     intro: '操控飞行器、船只等其他载具。',
-    group: { show: [''], skills: [{ name: '船' }, { name: '马车' }, { name: '飞行器' }] },
+    group: { show: [''], skills: [{ name: '船' }, { name: '马车' }, { name: '飞行器' }, { name: '伊卡洛斯' }] },
   },
   { name: '驯兽', init: 5, intro: '命令、训练动物进行简单任务。' },
   { name: '计算机使用', init: 5, intro: '编程、恢复数据、解除保护系统。仅在现代可用。', hidden: '计算机使用Ω' },
@@ -66,7 +66,7 @@ export const skills = [
     intro: '近距离战斗的技能，可专业化为具体武器。',
     group: {
       show: ['斗殴', '', ''],
-      skills: [{ name: '斗殴', init: 25 }, { name: '刀剑', init: 20 }, { name: '矛', init: 20 }, { name: '斧', init: 15 }, { name: '绞索', init: 15 }, { name: '链锯', init: 10 }, { name: '链枷', init: 10 }, { name: '鞭', init: 5 }],
+      skills: [{ name: '斗殴', init: 25 }, { name: '刀剑', init: 20 }, { name: '矛', init: 20 }, { name: '斧', init: 15 }, { name: '绞索', init: 15 }, { name: '链锯', init: 10 }, { name: '链枷', init: 10 }, { name: '鞭', init: 5 }, { name: '盾', init: 15 }, { name: '长武器', init: 15 }],
     },
   },
   {
@@ -74,7 +74,7 @@ export const skills = [
     intro: '各种形式的火器，也包括弓箭和弩。',
     group: {
       show: ['手枪', '步/霰', ''],
-      skills: [{ name: '手枪', init: 20 }, { name: '步/霰', init: 25 }, { name: '冲锋枪', init: 15 }, { name: '弓弩', init: 15 }, { name: '机枪', init: 10 }, { name: '重武器', init: 10 }],
+      skills: [{ name: '手枪', init: 20 }, { name: '步/霰', init: 25 }, { name: '冲锋枪', init: 15 }, { name: '弓弩', init: 15 }, { name: '机枪', init: 10 }, { name: '重武器', init: 10 }, { name: '投石索', init: 15 }, { name: '能量武器', init: 25 }],
     },
   },
   { name: '闪避', init: 0, initPlaceholder: '1/2敏捷', intro: '本能地闪避攻击与投掷物。' },
@@ -141,3 +141,87 @@ export function getSkill(name) { return skillMap.get(name); }
 // 需要填写具体类别的技能（子技能分组）
 // 「自定义」的分组 skills 为空，但同样按分组技能处理（用户自由填写自定义技能名）
 export const groupedSkillNames = skills.filter(s => s.group && (s.group.skills.length || s.name === '自定义')).map(s => s.name);
+
+// ============================================================
+// 扩展时代专属技能（源自《克苏鲁时空穿梭》）
+// 仅在选择对应时代时显示在技能列表中；现代 / 1920s 不显示。
+// base 特殊取值：int/2、pow/5、mythos/2、occ(本职25%否则1%)
+// spec: true 表示专门化技能（需按子类分别投入点数）
+// ============================================================
+export const eraSkillGroups = {
+  // 克苏鲁不败（罗马时代）
+  invictus: [
+    { name: '公民', init: 10, intro: '对罗马法律与政府的了解：理清政治关系网、贿赂官员、判断行为合法与否。' },
+    { name: '帝国知识', init: 25, intro: '对罗马帝国历史、传说、神话的了解，如近期宗教、角斗士冠军、城市由来等。' },
+    { name: '察言观色', init: 5, intro: '打量他人，观察其行为并揣测目的；可对抗社交技能检定，识破乔装。' },
+    { name: '外邦知识', init: 20, intro: '对帝国之外或边远地区人物、场所、传说的了解。专门化：每个国度和地区单独投入点数。', spec: true },
+    { name: '修造', init: 20, intro: '修理/制造简单的设备、船只、屋顶等；可设置陷坑、圈套；不能维修盾牌和武器。' },
+    { name: '读写', init: 1, intro: '阅读、书写某种文字的能力（如拉丁文）。', spec: true },
+    { name: '战术', init: 1, intro: '对战术与运用的熟悉程度。若是本职技能则初始值25%，否则为1%。', occ: true },
+  ],
+  // 克苏鲁黑暗时代（10~11世纪欧洲）
+  dark: [
+    { name: '察言观色', init: 5, intro: '打量他人，观察其行为并揣测目的；可对抗社交技能检定，识破乔装。' },
+    { name: '外邦知识', init: 20, intro: '对本国之外人物、场所、传说的了解。专门化：每个国度和地区单独投入点数。', spec: true },
+    { name: '本国知识', init: 20, intro: '对本国人民、土地和传说的了解：地方名号、方言、领主与当地迷信。' },
+    { name: '修造', init: 20, intro: '修理/制造简单的设备、船只、屋顶等；可设置陷坑、圈套；不能维修盾牌和武器。' },
+    { name: '宗教', init: 20, intro: '对信仰宗教的了解：节日时令、圣人名号、教堂禁忌；识别异教符咒、仪式地点与土俗神。' },
+    { name: '读写', init: 1, intro: '阅读、书写某种文字的能力（如拉丁文或本地语文）。', spec: true },
+    { name: '手语', init: 1, intro: '修道院等环境中使用的手势语言（如僧侣间的手语）。' },
+  ],
+  // 神秘冰岛（930年冰岛萨迦时代）
+  iceland: [
+    { name: '察言观色', init: 5, intro: '打量他人，观察其行为并揣测目的；可对抗社交技能检定，识破乔装。' },
+    { name: '读写', init: 1, intro: '阅读、书写某种文字的能力（如拉丁文与维京如尼文）。', spec: true },
+    { name: '本地知识', init: 0, base: 'int/2', intro: '对本地人民和地理特征的了解：首领是谁、宗族领地边界、主要路线等。' },
+    { name: '预言', init: 0, intro: '通过占卜看到未来的能力（分析内脏、如尼符文或观察自然）。只有意志80以上才能分配点数。' },
+    { name: '灵视力', init: 1, intro: '看到另一个世界的天赋：与动物守护灵交流、看到魔法生物或灵魂。' },
+    { name: '滑雪', init: 25, intro: '使用滑雪板在冰和雪上移动的方法；长距离滑雪还会用到滑雪杆。' },
+  ],
+  // 克苏鲁煤气灯：无新技能（电气维修降为01%、操作重型机械01%、驾驶〔热气球/船舶〕）
+  gaslight: [],
+  // 洛夫克拉夫特的幻梦境
+  dreamlands: [
+    { name: '造梦', init: 0, base: 'pow/5', intro: '梦想出改变幻梦境现实的事物（创造物品、改变物体、影响物理规律），需消耗魔法值。' },
+    { name: '梦境学问', init: 0, base: 'mythos/2', intro: '对幻梦境的了解：历史、识别生物与重要人物、知晓路径。基础值等于克苏鲁神话的一半。' },
+  ],
+  // 克苏鲁伊卡洛斯（近未来星际）
+  icarus: [
+    { name: '计算机维护', init: 5, intro: '检测计算机系统和网络中的故障并维修，包括代码编写、覆写与排错；取代计算机使用。' },
+    { name: '系统操作', init: 10, intro: '安全平稳地操作飞船和控制系统：理解、操作、设定、诊断、修理生命维护/发动机/安全系统。' },
+    { name: '技术维修', init: 1, intro: '维护和修理机械维修、电气维修等力不能及的复杂机械：诊断硬件故障、制造维修脉冲枪与计算机。' },
+    { name: '零重力', init: 5, intro: '零重力环境下的生存、移动和操作训练；零重力近身格斗取代「格斗（斗殴）」。' },
+  ],
+  // 克苏鲁末日之收割（旧日支配者苏醒后的废土）
+  endtimes: [
+    { name: '拾荒', init: 15, intro: '在文明残骸中发现道具和有价值物品的能力；专门搜寻时可代替侦查，判断有无可用道具时可代替幸运。' },
+    { name: '技术维修', init: 1, intro: '维护和修理复杂机械：诊断硬件故障、制造和维修计算机与通讯工具（若有动力来源）。' },
+  ],
+};
+
+// 时代技能组在技能标签页中显示的名称
+export const ERA_SKILL_GROUP = '时代技能';
+
+// 全部时代技能汇总索引
+const eraSkillMap = new Map();
+Object.values(eraSkillGroups).forEach(list => list.forEach(s => eraSkillMap.set(s.name, s)));
+export function getEraSkill(name) { return eraSkillMap.get(name); }
+
+// 当前时代的技能分组（标准分组 + 时代技能组）
+export function getEraSkillGroups(eraId) {
+  const list = eraSkillGroups[eraId] || [];
+  if (!list.length) return { ...skillGroups };
+  return { ...skillGroups, [ERA_SKILL_GROUP]: list.map(s => s.name) };
+}
+
+// 当前时代的技能标签页顺序（含「时代技能」）
+export function getEraGroupOrder(eraId) {
+  const list = eraSkillGroups[eraId] || [];
+  if (!list.length) return [...skillGroupOrder];
+  return [...skillGroupOrder, ERA_SKILL_GROUP];
+}
+
+// 当前时代技能定义列表
+export function getEraSkillList(eraId) {
+  return eraSkillGroups[eraId] || [];
+}
