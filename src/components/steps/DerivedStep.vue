@@ -2,12 +2,13 @@
 import { computed } from 'vue';
 import { character, derived, currentJob, totalProPoints, totalInterestPoints, packageSanReduction, saveCharacter, effectiveAttr } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN } from '../../data/rules.js';
+import { t, dataNameWithTag } from '../../i18n.js';
 
 const sanAdj = computed(() => packageSanReduction());
 
 const jobDisplay = computed(() => {
-  if (character.jobType === 'preset') return character.jobName || '未选择';
-  return character.customJobName || '自定义职业';
+  if (character.jobType === 'preset') return character.jobName ? dataNameWithTag(character.jobName) : t('derived.notSelected');
+  return character.customJobName || t('derived.customJob');
 });
 
 const attrList = [...ATTR_KEYS, 'luc'];
@@ -41,12 +42,12 @@ function bumpOverride(key, delta) {
     <!-- ============ 导入编辑模式：可调整基础属性与衍生 ============ -->
     <template v-if="character.imported">
       <div class="card">
-        <div class="card-title"><h2>属性与衍生属性调整</h2><span class="sub">Attributes & Derived</span></div>
+        <div class="card-title"><h2>{{ $t('derived.titleImport') }}</h2><span class="sub">{{ $t('derived.subImport') }}</span></div>
         <div class="card-body">
-          <h3 class="mb-8">基础属性调整</h3>
+          <h3 class="mb-8">{{ $t('derived.baseAttr') }}</h3>
           <div class="num-grid">
             <div v-for="k in attrList" :key="k" class="num-field">
-              <div class="num-label serif">{{ ATTR_LABELS[k] }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
+              <div class="num-label serif">{{ $dn(ATTR_LABELS[k]) }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpAttr(k, -1)">−</button>
                 <input class="mini" type="number" :value="character.attributes[k] ?? ''" @input="setAttr(k, $event.target.value)" />
@@ -57,10 +58,10 @@ function bumpOverride(key, delta) {
 
           <div class="divider"></div>
 
-          <h3 class="mb-8">生命 / 魔法 / 理智 调整</h3>
+          <h3 class="mb-8">{{ $t('derived.hpMpSan') }}</h3>
           <div class="num-grid">
             <div class="num-field">
-              <div class="num-label">当前生命值 HP</div>
+              <div class="num-label">{{ $t('derived.curHp') }}</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('hp', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.hp ?? derived.hp" @input="setOverride('hp', $event.target.value)" />
@@ -68,7 +69,7 @@ function bumpOverride(key, delta) {
               </div>
             </div>
             <div class="num-field">
-              <div class="num-label">当前魔法值 MP</div>
+              <div class="num-label">{{ $t('derived.curMp') }}</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('mp', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.mp ?? derived.mp" @input="setOverride('mp', $event.target.value)" />
@@ -76,7 +77,7 @@ function bumpOverride(key, delta) {
               </div>
             </div>
             <div class="num-field">
-              <div class="num-label">当前理智值 SAN</div>
+              <div class="num-label">{{ $t('derived.curSan') }}</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('san', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.san ?? derived.san" @input="setOverride('san', $event.target.value)" />
@@ -84,7 +85,7 @@ function bumpOverride(key, delta) {
               </div>
             </div>
             <div class="num-field">
-              <div class="num-label">理智值上限</div>
+              <div class="num-label">{{ $t('derived.sanMax') }}</div>
               <div class="num-row">
                 <button class="btn sm" @click="bumpOverride('sanMax', -1)">−</button>
                 <input class="mini" type="number" :value="character.derivedOverrides.sanMax ?? derived.sanMax" @input="setOverride('sanMax', $event.target.value)" />
@@ -94,11 +95,11 @@ function bumpOverride(key, delta) {
           </div>
 
           <div class="derived-readonly">
-            <div class="ro-item"><span class="ro-label">生命值上限</span><span class="ro-val serif">{{ derived.hpMax }}</span></div>
-            <div class="ro-item"><span class="ro-label">魔法值上限</span><span class="ro-val serif">{{ derived.mpMax }}</span></div>
-            <div class="ro-item"><span class="ro-label">体格</span><span class="ro-val serif">{{ derived.build }}</span></div>
-            <div class="ro-item"><span class="ro-label">伤害加值</span><span class="ro-val serif">{{ derived.db }}</span></div>
-            <div class="ro-item"><span class="ro-label">移动力</span><span class="ro-val serif">{{ derived.mov }}</span></div>
+            <div class="ro-item"><span class="ro-label">{{ $t('derived.hpMax') }}</span><span class="ro-val serif">{{ derived.hpMax }}</span></div>
+            <div class="ro-item"><span class="ro-label">{{ $t('derived.mpMax') }}</span><span class="ro-val serif">{{ derived.mpMax }}</span></div>
+            <div class="ro-item"><span class="ro-label">{{ $t('derived.build') }}</span><span class="ro-val serif">{{ derived.build }}</span></div>
+            <div class="ro-item"><span class="ro-label">{{ $t('derived.db') }}</span><span class="ro-val serif">{{ derived.db }}</span></div>
+            <div class="ro-item"><span class="ro-label">{{ $t('derived.mov') }}</span><span class="ro-val serif">{{ derived.mov }}</span></div>
           </div>
         </div>
       </div>
@@ -107,31 +108,31 @@ function bumpOverride(key, delta) {
     <!-- ============ 创建模式：只读展示 ============ -->
     <template v-else>
       <div class="card">
-        <div class="card-title"><h2>当前数据</h2><span class="sub">Derived Attributes</span></div>
+        <div class="card-title"><h2>{{ $t('derived.titleView') }}</h2><span class="sub">{{ $t('derived.subView') }}</span></div>
         <div class="card-body">
           <div class="grid-2">
             <div>
-              <h3 class="mb-8">属性</h3>
+              <h3 class="mb-8">{{ $t('derived.attrs') }}</h3>
               <table class="grid">
                 <tbody>
                   <tr v-for="k in attrList" :key="k">
-                    <td class="serif">{{ ATTR_LABELS[k] }} <span class="faint small">{{ ATTR_EN[k] }}</span></td>
+                    <td class="serif">{{ $dn(ATTR_LABELS[k]) }} <span class="faint small">{{ ATTR_EN[k] }}</span></td>
                     <td class="right">{{ effectiveAttr(k) }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div>
-              <h3 class="mb-8">衍生属性</h3>
+              <h3 class="mb-8">{{ $t('derived.derivedAttr') }}</h3>
               <table class="grid">
                 <tbody>
-                  <tr><td class="serif">理智 SAN</td><td class="right">{{ derived.san }}</td></tr>
-                  <tr><td class="serif">理智值上限</td><td class="right">{{ derived.sanMax }}</td></tr>
-                  <tr><td class="serif">生命值 HP</td><td class="right">{{ derived.hp }}</td></tr>
-                  <tr><td class="serif">魔法值 MP</td><td class="right">{{ derived.mp }}</td></tr>
-                  <tr><td class="serif">体格</td><td class="right">{{ derived.build }}</td></tr>
-                  <tr><td class="serif">伤害加值</td><td class="right">{{ derived.db }}</td></tr>
-                  <tr><td class="serif">移动力</td><td class="right">{{ derived.mov }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.san') }}</td><td class="right">{{ derived.san }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.sanMaxR') }}</td><td class="right">{{ derived.sanMax }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.hp') }}</td><td class="right">{{ derived.hp }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.mp') }}</td><td class="right">{{ derived.mp }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.build') }}</td><td class="right">{{ derived.build }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.db') }}</td><td class="right">{{ derived.db }}</td></tr>
+                  <tr><td class="serif">{{ $t('derived.mov') }}</td><td class="right">{{ derived.mov }}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -141,15 +142,15 @@ function bumpOverride(key, delta) {
 
           <div class="grid-3">
             <div class="stat-card">
-              <div class="stat-label faint small">职业</div>
+              <div class="stat-label faint small">{{ $t('derived.job') }}</div>
               <div class="stat-val serif">{{ jobDisplay }}</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label faint small">职业技能点数</div>
+              <div class="stat-label faint small">{{ $t('derived.proPoints') }}</div>
               <div class="stat-val serif accent">{{ totalProPoints }}</div>
             </div>
             <div class="stat-card">
-              <div class="stat-label faint small">业余技能点数</div>
+              <div class="stat-label faint small">{{ $t('derived.interestPoints') }}</div>
               <div class="stat-val serif accent">{{ totalInterestPoints }}</div>
             </div>
           </div>

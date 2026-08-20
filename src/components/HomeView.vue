@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import { importSaikoBase64 } from '../saiko.js';
 import { listInvestigators, deleteInvestigator, duplicateInvestigator, setInvestigatorImported, buildRosterExport, parseRosterExport, importInvestigators } from '../store.js';
 import { downloadRosterBackup } from '../export.js';
+import { getEra } from '../data/eras.js';
+import { dataName, t } from '../i18n.js';
 
 const emit = defineEmits(['new', 'import', 'load']);
 const fileInput = ref(null);
@@ -10,6 +12,36 @@ const saikoOpen = ref(false);
 const saikoText = ref('');
 const saikoError = ref('');
 const roster = ref([]);
+
+// ---- 花名册 搜索 / 时代筛选 / 视图切换 ----
+const VIEW_KEY = 'coc-wizard-roster-view';
+const query = ref('');
+const eraFilter = ref('all');
+const viewMode = ref(localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list');
+
+function eraLabel(era) {
+  if (era === '1920s') return '1920s';
+  if (era === 'modern') return dataName('现代');
+  const e = getEra(era);
+  return e ? dataName(e.label) : era;
+}
+const eraOptions = computed(() => {
+  const set = new Set(roster.value.map(c => c.era));
+  const ids = ['all', ...[...set].sort((a, b) => a.localeCompare(b, 'zh'))];
+  return ids.map(id => ({ id, label: id === 'all' ? t('home.eraAll') : eraLabel(id) }));
+});
+const filtered = computed(() => {
+  const q = query.value.trim().toLowerCase();
+  return roster.value.filter(c => {
+    const okQ = !q || c.name.toLowerCase().includes(q) || c.jobName.toLowerCase().includes(q);
+    const okE = eraFilter.value === 'all' || c.era === eraFilter.value;
+    return okQ && okE;
+  });
+});
+function toggleView() {
+  viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid';
+  localStorage.setItem(VIEW_KEY, viewMode.value);
+}
 
 function refresh() { roster.value = listInvestigators(); }
 onMounted(refresh);
@@ -27,7 +59,7 @@ function onFileChange(e) {
       const data = JSON.parse(reader.result);
       emit('import', data);
     } catch (err) {
-      alert('JSON 文件解析失败，请确认是导出的调查员文件。');
+      alert(t$t('home.jsonError'));
     }
   };
   reader.readAsText(file);
@@ -45,7 +77,7 @@ function applySaiko() {
     saikoOpen.value = false;
     emit('import', char);
   } catch (err) {
-    saikoError.value = 'Base64 串解析失败，请确认是从 TRPG Saiko 车卡工具复制的内容。';
+    saikoError.value = t$t('home.saikoError');
   }
 }
 
@@ -57,7 +89,8 @@ function toggleMode(c) {
 }
 function delCard(id) {
   const c = roster.value.find(x => x.id === id);
-  if (!confirm(`确定删除调查员「${c ? c.name : ''}」吗？此操作不可撤销。`)) return;
+  const msg = t$t('home.confirmDelete', { name: c ? c.name : '' });
+  if (!confirm(msg)) return;
   deleteInvestigator(id);
   refresh();
 }
@@ -94,14 +127,14 @@ function onRosterFileChange(e) {
   reader.onload = () => {
     const parsed = parseRosterExport(reader.result);
     if (!parsed || !parsed.cards.length) {
-      alert('文件解析失败，请确认是导出的调查员备份（lz-string 压缩 JSON）。');
+      alert(t$t('home.rosterError'));
       return;
     }
     importList.value = parsed.cards.map(card => ({
       id: card.id,
       card,
-      name: card.name || '未命名调查员',
-      jobName: card.jobType === 'preset' ? (card.jobName || '未知职业') : (card.customJobName || '自定义职业'),
+      name: card.name || t('common.unnamed'),
+      jobName: card.jobType === 'preset' ? (card.jobName || '') : (card.customJobName || ''),
       age: card.age,
       checked: true,
     }));
@@ -120,7 +153,7 @@ function doImport() {
   const n = importInvestigators(cards);
   importOpen.value = false;
   refresh();
-  alert(`已导入 ${n} 名调查员。`);
+  alert(t$t('home.importSuccess', { n }));
 }
 </script>
 
@@ -128,30 +161,30 @@ function doImport() {
   <div class="home fade-in">
     <div class="hero">
       <div class="sigil sigil-wide">☾ ✦ ☾</div>
-      <h1 class="hero-title">调查员之书</h1>
-      <p class="hero-sub serif">CALL OF CTHULHU · INVESTIGATOR CREATOR</p>
+      <h1 class="hero-title">{{ $t('home.heroTitle') }}</h1>
+      <p class="hero-sub serif">{{ $t('home.heroSub') }}</p>
       <p class="hero-desc dim">
-        在疯狂与理智的边缘，塑造你的调查员。<br>
-        本工具将引导你完成 COC 第七版角色卡的完整创建流程。<br>
-        部分灵感来源于<a href="https://github.com/masquevil/trpg-saikou" target="_blank"><strong>trpg-saiko</strong></a>
+        {{ $t('home.heroDesc1') }}<br>
+        {{ $t('home.heroDesc2') }}<br>
+        {{ $t('home.heroDesc3') }}<a href="https://github.com/masquevil/trpg-saikou" target="_blank"><strong>trpg-saiko</strong></a>
       </p>
     </div>
 
     <div class="options">
       <button class="opt-card card" @click="emit('new')">
         <span class="opt-icon"><font-awesome-icon icon="fa-solid fa-person-circle-plus" /></span>
-        <span class="opt-title">新调查员</span>
-        <span class="opt-desc dim small">从零开始，一步步创建一名全新的调查员</span>
+        <span class="opt-title">{{ $t('home.newTitle') }}</span>
+        <span class="opt-desc dim small">{{ $t('home.newDesc') }}</span>
       </button>
       <button class="opt-card card" @click="onPickFile">
         <span class="opt-icon"><font-awesome-icon icon="fa-solid fa-arrow-up-from-bracket" /></span>
-        <span class="opt-title">导入调查员</span>
-        <span class="opt-desc dim small">导入 JSON 文件，继续编辑或进行幕间成长</span>
+        <span class="opt-title">{{ $t('home.importTitle') }}</span>
+        <span class="opt-desc dim small">{{ $t('home.importDesc') }}</span>
       </button>
       <button class="opt-card card" @click="openSaiko">
         <span class="opt-icon"><font-awesome-icon icon="fa-solid fa-left-right" /></span>
-        <span class="opt-title">导入 Saiko Base64</span>
-        <span class="opt-desc dim small">粘贴 TRPG Saiko 车卡工具导出的 Base64 串</span>
+        <span class="opt-title">{{ $t('home.saikoTitle') }}</span>
+        <span class="opt-desc dim small">{{ $t('home.saikoDesc') }}</span>
       </button>
     </div>
 
@@ -159,21 +192,40 @@ function doImport() {
 
     <!-- 我的调查员（花名册） -->
     <section class="roster">
-      <h2 class="section-title"><span class="sigil">☾</span> 我的调查员</h2>
+      <h2 class="section-title"><span class="sigil">☾</span> {{ $t('home.rosterTitle') }}</h2>
       <div class="roster-toolbar">
-        <span class="dim small">共 {{ roster.length }} 名</span>
+        <input
+          class="inp roster-search"
+          type="search"
+          v-model="query"
+          :placeholder="$t('home.searchPh')"
+          aria-label="search"
+        />
+        <select class="inp roster-era" v-model="eraFilter" aria-label="era">
+          <option v-for="e in eraOptions" :key="e.id" :value="e.id">{{ e.label }}</option>
+        </select>
+        <button
+          class="btn ghost sm"
+          @click="toggleView"
+          :title="viewMode === 'grid' ? $t('home.viewGrid') : $t('home.viewList')"
+        >
+          <font-awesome-icon :icon="viewMode === 'grid' ? 'fa-solid fa-list' : 'fa-solid fa-table-cells-large'" />
+        </button>
+        <span class="dim small count">{{ filtered.length }}/{{ roster.length }}</span>
         <span class="spacer"></span>
-        <button class="btn ghost sm" :disabled="roster.length === 0" @click="openExport">
+        <button class="btn ghost sm" :disabled="roster.length === 0" :title="$t('home.exportBtn')" @click="openExport">
           <font-awesome-icon icon="fa-solid fa-file-export" />
         </button>
-        <button class="btn ghost sm" @click="onPickRosterFile">
+        <button class="btn ghost sm" :title="$t('home.importBtn')" @click="onPickRosterFile">
           <font-awesome-icon icon="fa-solid fa-file-import" />
         </button>
       </div>
       <input ref="rosterFile" type="file" accept="application/json,.json,.coc.json" style="display:none" @change="onRosterFileChange" />
-      <ul v-if="roster.length" class="roster-list">
+
+      <!-- 列表视图 -->
+      <ul v-if="filtered.length && viewMode === 'list'" class="roster-list">
         <li
-          v-for="c in roster"
+          v-for="c in filtered"
           :key="c.id"
           class="roster-item card"
           :class="{ active: c.current }"
@@ -181,15 +233,16 @@ function doImport() {
         >
           <div class="ri-main">
             <span class="ri-name">{{ c.name }}</span>
-            <span class="ri-meta dim small">{{ c.jobName }}<template v-if="c.age"> · {{ c.age }}岁</template></span>
+            <span class="ri-meta dim small">{{ eraLabel(c.era) }}</span>
+            <span class="ri-meta dim small">{{ $dnt(c.jobName) }}</span>
           </div>
           <div class="ri-actions" @click.stop>
             <button
               class="btn ghost sm mode-toggle"
               :class="{ done: c.imported }"
               @click="toggleMode(c)"
-              :title="c.imported ? '创建完成：点击切换为创建模式' : '创建模式：点击切换为创建完成'"
-            >{{ c.imported ? '已完成' : '创建中' }}</button>
+              :title="c.imported ? $t('home.modeDoneTitle') : $t('home.modeCreatingTitle')"
+            >{{ c.imported ? $t('home.done') : $t('home.creating') }}</button>
             <button class="btn ghost sm" @click="dupCard(c.id)">
               <font-awesome-icon icon="fa-solid fa-copy" />
             </button>
@@ -199,33 +252,68 @@ function doImport() {
           </div>
         </li>
       </ul>
-      <p v-else class="roster-empty dim small">暂无已保存的调查员，新建或导入一张开始吧。</p>
+
+      <!-- 卡片视图（头像缩略图 + 姓名） -->
+      <ul v-if="filtered.length && viewMode === 'grid'" class="roster-grid">
+        <li
+          v-for="c in filtered"
+          :key="c.id"
+          class="roster-card card"
+          :class="{ active: c.current }"
+          @click="openCard(c.id)"
+        >
+          <span class="rc-avatar" :class="{ empty: !c.avatar }">
+            <img v-if="c.avatar" :src="c.avatar" alt="" />
+            <font-awesome-icon v-else icon="fa-solid fa-user" />
+          </span>
+          <span class="rc-name">{{ c.name }}</span>
+          <span class="rc-meta dim small">{{ eraLabel(c.era) }}</span>
+          <span class="rc-meta dim small">{{ $dnt(c.jobName) }}</span>
+          <div class="rc-actions" @click.stop>
+            <button
+              class="btn ghost sm mode-toggle"
+              :class="{ done: c.imported }"
+              @click="toggleMode(c)"
+              :title="c.imported ? $t('home.modeDoneTitle') : $t('home.modeCreatingTitle')"
+            >{{ c.imported ? $t('home.done') : $t('home.creating') }}</button>
+            <button class="btn ghost sm" @click="dupCard(c.id)">
+              <font-awesome-icon icon="fa-solid fa-copy" />
+            </button>
+            <button class="btn ghost sm danger" @click="delCard(c.id)">
+              <font-awesome-icon icon="fa-solid fa-trash" />
+            </button>
+          </div>
+        </li>
+      </ul>
+
+      <p v-if="roster.length && !filtered.length" class="roster-empty dim small">{{ $t('home.emptyFiltered') }}</p>
+      <p v-else-if="!roster.length" class="roster-empty dim small">{{ $t('home.emptyRoster') }}</p>
     </section>
 
     <!-- 导出调查员 -->
     <div v-if="exportOpen" class="overlay" @click.self="exportOpen = false">
       <div class="modal card">
         <div class="modal-head">
-          <h3>导出调查员</h3>
+          <h3>{{ $t('home.exportModal') }}</h3>
           <span class="spacer"></span>
           <button class="btn ghost sm" @click="exportOpen = false">✕</button>
         </div>
         <div class="modal-body">
-          <button class="btn ghost sm mb-8" @click="toggleAllExport">全选 / 取消</button>
+          <button class="btn ghost sm mb-8" @click="toggleAllExport">{{ $t('home.selectAll') }}</button>
           <ul class="pick-list">
             <li v-for="c in exportList" :key="c.id" class="pick-item">
               <label>
                 <input type="checkbox" v-model="c.checked" />
                 <span class="pi-name">{{ c.name }}</span>
-                <span class="pi-meta dim small">{{ c.jobName }}<template v-if="c.age"> · {{ c.age }}岁</template></span>
+                <span class="pi-meta dim small">{{ $dnt(c.jobName) }}</span>
               </label>
             </li>
           </ul>
         </div>
         <div class="modal-foot row">
-          <button class="btn" @click="exportOpen = false">取消</button>
+          <button class="btn" @click="exportOpen = false">{{ $t('common.cancel') }}</button>
           <span class="spacer"></span>
-          <button class="btn primary" :disabled="exportCheckedCount === 0" @click="doExport">导出选中（{{ exportCheckedCount }}）</button>
+          <button class="btn primary" :disabled="exportCheckedCount === 0" @click="doExport">{{ $t('home.exportSelected', { n: exportCheckedCount }) }}</button>
         </div>
       </div>
     </div>
@@ -234,26 +322,26 @@ function doImport() {
     <div v-if="importOpen" class="overlay" @click.self="importOpen = false">
       <div class="modal card">
         <div class="modal-head">
-          <h3>导入调查员</h3>
+          <h3>{{ $t('home.importModal') }}</h3>
           <span class="spacer"></span>
           <button class="btn ghost sm" @click="importOpen = false">✕</button>
         </div>
         <div class="modal-body">
-          <button class="btn ghost sm mb-8" @click="toggleAllImport">全选 / 取消</button>
+          <button class="btn ghost sm mb-8" @click="toggleAllImport">{{ $t('home.selectAll') }}</button>
           <ul class="pick-list">
             <li v-for="c in importList" :key="c.id" class="pick-item">
               <label>
                 <input type="checkbox" v-model="c.checked" />
                 <span class="pi-name">{{ c.name }}</span>
-                <span class="pi-meta dim small">{{ c.jobName }}<template v-if="c.age"> · {{ c.age }}岁</template></span>
+                <span class="pi-meta dim small">{{ $dnt(c.jobName) }}</span>
               </label>
             </li>
           </ul>
         </div>
         <div class="modal-foot row">
-          <button class="btn" @click="importOpen = false">取消</button>
+          <button class="btn" @click="importOpen = false">{{ $t('common.cancel') }}</button>
           <span class="spacer"></span>
-          <button class="btn primary" :disabled="importCheckedCount === 0" @click="doImport">导入选中（{{ importCheckedCount }}）</button>
+          <button class="btn primary" :disabled="importCheckedCount === 0" @click="doImport">{{ $t('home.importSelected', { n: importCheckedCount }) }}</button>
         </div>
       </div>
     </div>
@@ -262,19 +350,19 @@ function doImport() {
     <div v-if="saikoOpen" class="overlay" @click.self="saikoOpen = false">
       <div class="modal card">
         <div class="modal-head">
-          <h3>导入 Saiko Base64</h3>
+          <h3>{{ $t('home.saikoModal') }}</h3>
           <span class="spacer"></span>
           <button class="btn ghost sm" @click="saikoOpen = false">✕</button>
         </div>
         <div class="modal-body">
-          <p class="hint mb-8">将从 TRPG Saiko 车卡工具「导入/导出数据」复制的内容粘贴到下方：</p>
-          <textarea class="inp" rows="10" v-model="saikoText" placeholder="粘贴 Base64 串…"></textarea>
+          <p class="hint mb-8">{{ $t('home.saikoHint') }}</p>
+          <textarea class="inp" rows="10" v-model="saikoText" :placeholder="$t('home.saikoPh')"></textarea>
           <p v-if="saikoError" class="warn-text mt-8">{{ saikoError }}</p>
         </div>
         <div class="modal-foot row">
-          <button class="btn" @click="saikoOpen = false">取消</button>
+          <button class="btn" @click="saikoOpen = false">{{ $t('common.cancel') }}</button>
           <span class="spacer"></span>
-          <button class="btn primary" :disabled="!saikoText.trim()" @click="applySaiko">导入</button>
+          <button class="btn primary" :disabled="!saikoText.trim()" @click="applySaiko">{{ $t('home.import') }}</button>
         </div>
       </div>
     </div>
@@ -309,7 +397,7 @@ function doImport() {
 .modal-body { padding: 16px 18px; }
 .modal-foot { padding: 12px 18px; border-top: 1px solid var(--border); gap: 10px; }
 .spacer { flex: 1; }
-@media (max-width: 640px) { .options { grid-template-columns: 1fr; } .roster-list { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .options { grid-template-columns: 1fr; } .roster-list { grid-template-columns: 1fr; } .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .roster-toolbar { flex-wrap: wrap; } .roster-search { max-width: none; } }
 
 /* 我的调查员 */
 .roster { margin-top: 20px; }
@@ -337,6 +425,33 @@ function doImport() {
 .roster-empty { padding: 18px; text-align: center; border: 1px dashed var(--border); border-radius: 8px; }
 .roster-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .roster-toolbar .spacer { flex: 1; }
+.roster-toolbar .count { flex: none; min-width: 3.2em; text-align: right; }
+.roster-search { flex: 1; min-width: 120px; max-width: 260px; }
+.roster-era { flex: none; width: auto; max-width: 170px; }
+
+/* 卡片视图：头像缩略图 + 姓名 */
+.roster-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.roster-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 18px 14px 14px; cursor: pointer; text-align: center;
+  min-width: 0; width: 100%; box-sizing: border-box;
+  border: 1px solid var(--border); transition: transform 0.12s, border-color 0.2s, box-shadow 0.2s;
+}
+.roster-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--shadow-lg); }
+.roster-card.active { border-color: var(--gold); }
+.rc-avatar {
+  width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border); background: var(--surface-2); color: var(--text-faint);
+  font-size: 1.6rem;
+}
+.rc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.rc-name { font-family: Georgia, serif; font-size: 1.15rem; color: var(--text); letter-spacing: 0.04em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-meta { line-height: 1.4; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-actions { display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+/* 列表视图：时代 / 职业 各占一行，超出裁切 */
+.ri-meta { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 导出/导入选择列表 */
 .pick-list { list-style: none; margin: 0; padding: 0; max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }

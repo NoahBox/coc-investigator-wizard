@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { character, saveCharacter, occupationSkills, getAllocation, skillValue, skillBaseOf, setAllocation, splitSkillKey } from '../../store.js';
 import { roll } from '../../data/rules.js';
+import { skillLabel } from '../../i18n.js';
 
 const selected = ref({});
 const results = ref([]);
@@ -13,7 +14,8 @@ const growableSkills = computed(() => {
   });
 });
 
-function fmtKey(key) { return key.replace('(', '（').replace(')', '）').replace(/Ω/g, ''); }
+// 技能键本地化显示（父(子) 分别翻译，如 格斗(斗殴) → Fighting(Brawl)）
+function fmtKey(key) { return skillLabel(key); }
 
 // 已分配点数（职业+业余+成长+经验包）
 function allocPoints(key) {
@@ -33,7 +35,7 @@ function doGrowth() {
       const a = getAllocation(key);
       setAllocation(key, { growth: (a.growth || 0) + gain });
     }
-    results.value.push({ key: fmtKey(key), cur, r1, gain });
+    results.value.push({ key, cur, r1, gain });
   });
   saveCharacter();
 }
@@ -42,16 +44,16 @@ function doGrowth() {
 <template>
   <div class="step fade-in">
     <div class="card">
-      <div class="card-title"><h2>幕间成长</h2><span class="sub">Improvement Phase</span></div>
+      <div class="card-title"><h2>{{ $t('growth.title') }}</h2><span class="sub">{{ $t('growth.sub') }}</span></div>
       <div class="card-body">
         <p class="hint mb-16">
-          勾选需要成长的技能，点击「成长」。每个技能掷 1D100，若结果大于当前技能值或大于 95，则再掷 1D10 并提升该数值。
+          {{ $t('growth.hint') }}
         </p>
 
-        <div v-if="growableSkills.length === 0" class="empty">没有可成长的本职技能</div>
+        <div v-if="growableSkills.length === 0" class="empty">{{ $t('growth.noGrowable') }}</div>
 
         <table class="grid" v-else>
-          <thead><tr><th></th><th>技能</th><th>初始值</th><th>已分配</th><th>实际值</th></tr></thead>
+          <thead><tr><th></th><th>{{ $t('growth.name') }}</th><th>{{ $t('growth.init') }}</th><th>{{ $t('growth.allocated') }}</th><th>{{ $t('growth.actual') }}</th></tr></thead>
           <tbody>
             <tr v-for="key in growableSkills" :key="key">
               <td style="width:32px">
@@ -69,19 +71,19 @@ function doGrowth() {
         </table>
 
         <div class="row mt-16">
-          <button class="btn primary" @click="doGrowth"><font-awesome-icon icon="fa-solid fa-dice" />成长</button>
+          <button class="btn primary" @click="doGrowth"><font-awesome-icon icon="fa-solid fa-dice" />{{ $t('growth.grow') }}</button>
         </div>
 
         <div v-if="results.length" class="mt-16">
-          <h3 class="mb-8">成长结果</h3>
+          <h3 class="mb-8">{{ $t('growth.resultTitle') }}</h3>
           <table class="grid">
-            <thead><tr><th>技能</th><th>原值</th><th>D100</th><th>提升</th></tr></thead>
+            <thead><tr><th>{{ $t('growth.name') }}</th><th>{{ $t('growth.orig') }}</th><th>{{ $t('growth.d100') }}</th><th>{{ $t('growth.gain') }}</th></tr></thead>
             <tbody>
               <tr v-for="r in results" :key="r.key">
-                <td>{{ r.key }}</td>
+                <td>{{ fmtKey(r.key) }}</td>
                 <td>{{ r.cur }}</td>
                 <td>{{ r.r1 }}</td>
-                <td :class="{ accent: r.gain > 0, faint: r.gain === 0 }">{{ r.gain > 0 ? '+' + r.gain : '未成长' }}</td>
+                <td :class="{ accent: r.gain > 0, faint: r.gain === 0 }">{{ r.gain > 0 ? '+' + r.gain : $t('growth.noGain') }}</td>
               </tr>
             </tbody>
           </table>

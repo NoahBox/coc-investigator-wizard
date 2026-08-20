@@ -9,29 +9,43 @@ import { skillGroups, skillGroupOrder, getSkill, getEraSkillGroups, getEraGroupO
 import { getEra } from '../../data/eras.js';
 import { downloadJSON, copySt, downloadSt, exportImages, exportPDFPages, downloadText } from '../../export.js';
 import { exportSaikoBase64 } from '../../saiko.js';
+import { exportFVTT } from '../../fvtt.js';
+import { t, dataName, dataNameWithTag, skillLabel, flavorText, locale } from '../../i18n.js';
+import { eraDiceTables } from '../../data/eras.js';
+import { exportShareLink } from '../../share.js';
 
 const frontRef = ref(null);
 const backRef = ref(null);
 const busy = ref('');
 
-const jobDisplay = computed(() => character.jobType === 'preset' ? character.jobName : (character.customJobName || '自定义'));
-const genderDisplay = computed(() => character.gender === '其他' ? (character.genderOther || '其他') : character.gender);
-const countryDisplay = computed(() => character.country === '其他' ? (character.countryOther || '其他') : character.country);
+const jobDisplay = computed(() => character.jobType === 'preset' ? (character.jobName ? dataNameWithTag(character.jobName) : '') : (character.customJobName || t('overall.customJob')));
+const genderDisplay = computed(() => character.gender === '其他' ? (character.genderOther || t('overall.genderOther')) : dataName(character.gender));
+const countryDisplay = computed(() => character.country === '其他' ? (character.countryOther || t('overall.countryOther')) : dataName(character.country));
 const attrSum = computed(() => ATTR_KEYS.reduce((s, k) => s + effectiveAttr(k), 0));
 
 // 时代显示：扩展时代显示全称（如 克苏鲁不败），否则 1920s / 现代
 const eraLabel = computed(() => {
   if (character.era === '1920s') return '1920s';
-  if (character.era === 'modern') return '现代';
+  if (character.era === 'modern') return dataName('现代');
   const e = getEra(character.era);
-  return e ? e.label : character.era;
+  return e ? dataName(e.label) : character.era;
 });
 
 // 防具 / 盾牌（时代特性步骤选择）
 const armorText = computed(() => [character.eraArmor, character.eraShield].filter(Boolean).join(' / '));
 
-// 时代信息（派系 / 随机表结果）：只读展示于反面背景故事区
-const eraInfoText = computed(() => eraInfo.value.join('\n'));
+// 时代信息（派系 / 随机表结果）：只读展示于反面背景故事区（本地化重建）
+const eraInfoText = computed(() => {
+  const parts = [];
+  const table = eraDiceTables[character.era];
+  const roll = character.eraEffects?.[character.era];
+  if (table && roll && roll.dice) {
+    const entry = table.entries[roll.dice - 1];
+    if (entry) parts.push(`${dataName(table.title)}（1D10=${roll.dice}）：${dataName(entry.text)}（${flavorText(entry.note)}）`);
+  }
+  if (character.eraFaction) parts.push(`${t('bg.eraInfo')}：${dataName(character.eraFaction)}`);
+  return parts.join('\n');
+});
 
 // 技能表数据（按分类，展开分组子技能；含时代技能组）
 const skillTable = computed(() => {
@@ -44,19 +58,19 @@ const skillTable = computed(() => {
       if (name === '自定义') {
         // 自定义技能：显示用户填写的自定义技能名
         const customChildren = (character.groupedOrder['自定义'] || []).filter((c) => c);
-        customChildren.forEach((child) => rows.push({ label: child, key: makeSkillKey('自定义', child) }));
+        customChildren.forEach((child) => rows.push({ label: dataName(child), key: makeSkillKey('自定义', child) }));
         return;
       }
       const sk = getSkill(name);
       if (sk && sk.group && sk.group.skills.length) {
         const children = (character.groupedOrder[name] || []).filter((c) => c);
         if (children.length) {
-          children.forEach((child) => rows.push({ label: `${name}:${child}`, key: makeSkillKey(name, child) }));
+          children.forEach((child) => rows.push({ label: skillLabel(makeSkillKey(name, child)), key: makeSkillKey(name, child) }));
         } else {
-          rows.push({ label: name, key: name });
+          rows.push({ label: dataName(name), key: name });
         }
       } else {
-        rows.push({ label: name.replace(/Ω/g, ''), key: name });
+        rows.push({ label: dataName(name.replace(/Ω/g, '')), key: name });
       }
     });
     if (rows.length) result.push({ groupName, rows });
@@ -106,11 +120,11 @@ const scenarioText = computed(() => (character.scenarios || []).filter(r => r.na
 const bg = computed(() => character.background);
 
 async function doImage() {
-  busy.value = '正在生成图片…';
+  busy.value = t('overall.busyImage');
   try { await exportImages([frontRef.value, backRef.value], character.name || 'investigator'); } finally { busy.value = ''; }
 }
 async function doPDF() {
-  busy.value = '正在生成 PDF…';
+  busy.value = t('overall.busyPdf');
   try { await exportPDFPages([frontRef.value, backRef.value], character.name || 'investigator'); } finally { busy.value = ''; }
 }
 function doJSON() { downloadJSON(); }
@@ -119,8 +133,21 @@ async function doSaikoBase64() {
   const b64 = exportSaikoBase64();
   try { await navigator.clipboard.writeText(b64); } catch (e) { /* ignore */ }
   downloadText(`${character.name || 'investigator'}.saiko.txt`, b64);
-  busy.value = '已复制 Saiko Base64 串';
-  setTimeout(() => { if (busy.value === '已复制 Saiko Base64 串') busy.value = ''; }, 2000);
+  busy.value = t('overall.copiedSaiko');
+  setTimeout(() => { if (busy.value === t('overall.copiedSaiko')) busy.value = ''; }, 2000);
+}
+async function doFVTT() {
+  const json = exportFVTT();
+  try { await navigator.clipboard.writeText(json); } catch (e) { /* ignore */ }
+  downloadText(`${character.name || 'investigator'}.coc7.json`, json);
+  busy.value = t('overall.copiedFvtt');
+  setTimeout(() => { if (busy.value === t('overall.copiedFvtt')) busy.value = ''; }, 2000);
+}
+async function doShare() {
+  const link = exportShareLink();
+  try { await navigator.clipboard.writeText(link); } catch (e) { /* ignore */ }
+  busy.value = t('overall.copiedShare');
+  setTimeout(() => { if (busy.value === t('overall.copiedShare')) busy.value = ''; }, 2500);
 }
 </script>
 
@@ -129,12 +156,14 @@ async function doSaikoBase64() {
     <!-- 导出工具栏 -->
     <div class="card toolbar">
       <div class="card-body row wrap">
-        <h3 class="mr">导出</h3>
-        <button class="btn primary" @click="doImage"><font-awesome-icon icon="fa-solid fa-file-image" />导出图片</button>
-        <button class="btn primary" @click="doPDF"><font-awesome-icon icon="fa-solid fa-file-pdf" />导出PDF</button>
-        <button class="btn" @click="doJSON"><font-awesome-icon icon="fa-solid fa-file-lines" />导出 JSON</button>
-        <button class="btn" @click="doSt"><font-awesome-icon icon="fa-solid fa-dice" />导出骰娘设定</button>
-        <button class="btn" @click="doSaikoBase64"><font-awesome-icon icon="fa-solid fa-file-zipper" />导出Saiko Base64</button>
+        <h3 class="mr">{{ $t('overall.exportAs') }}</h3>
+        <button class="btn primary" @click="doImage"><font-awesome-icon icon="fa-solid fa-file-image" />{{ $t('overall.image') }}</button>
+        <button class="btn primary" @click="doPDF"><font-awesome-icon icon="fa-solid fa-file-pdf" />{{ $t('overall.pdf') }}</button>
+        <button class="btn" @click="doJSON"><font-awesome-icon icon="fa-solid fa-file-lines" />{{ $t('overall.json') }}</button>
+        <button class="btn" @click="doSt"><font-awesome-icon icon="fa-solid fa-dice" />{{ $t('overall.st') }}</button>
+        <button class="btn" @click="doSaikoBase64"><font-awesome-icon icon="fa-solid fa-file-zipper" />{{ $t('overall.saiko') }}</button>
+        <button class="btn" @click="doFVTT"><font-awesome-icon icon="fa-solid fa-dragon" />{{ $t('overall.fvtt') }}</button>
+        <button class="btn" @click="doShare" :title="$t('overall.shareTitle')"><font-awesome-icon icon="fa-solid fa-share-nodes" />{{ $t('overall.share') }}</button>
         <span v-if="busy" class="small accent pulse">{{ busy }}</span>
       </div>
     </div>
@@ -146,41 +175,41 @@ async function doSaikoBase64() {
         <div class="section-row">
           <!-- 调查员 -->
           <section class="paper-section investigator">
-            <div class="header"><h1 class="heading"><span class="title">调查员</span><span class="subtitle">Investigator</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.inv') }}</span><span class="subtitle">{{ $t('overall.invSub') }}</span></h1></div>
             <div class="body info-body">
-              <div class="writable-row"><span class="lbl">姓名</span><span class="line grow">{{ character.name }}</span></div>
-              <div class="writable-row"><span class="lbl">玩家</span><span class="line grow">{{ character.player }}</span></div>
-              <div class="writable-row"><span class="lbl">时代</span><span class="line grow">{{ eraLabel }}</span></div>
-              <div class="writable-row" v-if="character.eraFaction"><span class="lbl">派系</span><span class="line grow">{{ character.eraFaction }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.name') }}</span><span class="line grow">{{ character.name }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.player') }}</span><span class="line grow">{{ character.player }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.era') }}</span><span class="line grow">{{ eraLabel }}</span></div>
+              <div class="writable-row" v-if="character.eraFaction"><span class="lbl">{{ $t('overall.faction') }}</span><span class="line grow">{{ $dn(character.eraFaction) }}</span></div>
               <div class="info-row">
-                <div class="writable-row grow"><span class="lbl">职业</span><span class="line grow">{{ jobDisplay }}</span></div>
-                <div class="writable-row grow"><span class="lbl">性别</span><span class="line grow">{{ genderDisplay }}</span></div>
+                <div class="writable-row grow"><span class="lbl">{{ $t('overall.job') }}</span><span class="line grow">{{ jobDisplay }}</span></div>
+                <div class="writable-row grow"><span class="lbl">{{ $t('overall.gender') }}</span><span class="line grow">{{ genderDisplay }}</span></div>
               </div>
               <div class="info-row">
-                <div class="writable-row grow"><span class="lbl">年龄</span><span class="line grow">{{ character.age }}</span></div>
-                <div class="writable-row grow"><span class="lbl">国家</span><span class="line grow">{{ countryDisplay }}</span></div>
+                <div class="writable-row grow"><span class="lbl">{{ $t('overall.age') }}</span><span class="line grow">{{ character.age }}</span></div>
+                <div class="writable-row grow"><span class="lbl">{{ $t('overall.country') }}</span><span class="line grow">{{ countryDisplay }}</span></div>
               </div>
               <div class="info-row">
-                <div class="writable-row grow"><span class="lbl">住地</span><span class="line grow">{{ character.residence }}</span></div>
-                <div class="writable-row grow"><span class="lbl">故乡</span><span class="line grow">{{ character.hometown }}</span></div>
+                <div class="writable-row grow"><span class="lbl">{{ $t('overall.residence') }}</span><span class="line grow">{{ character.residence }}</span></div>
+                <div class="writable-row grow"><span class="lbl">{{ $t('overall.hometown') }}</span><span class="line grow">{{ character.hometown }}</span></div>
               </div>
             </div>
           </section>
 
           <!-- 属性 -->
           <section class="paper-section attributes">
-            <div class="header"><h1 class="heading"><span class="title">属性</span><span class="subtitle">Characteristics</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.attrs') }}</span><span class="subtitle">{{ $t('overall.attrsSub') }}</span></h1></div>
             <div class="body attr-body">
               <div class="attr-group">
                 <div v-for="k in ['str','con','dex','app']" :key="k" class="writable-row">
-                  <span class="lbl">{{ ATTR_LABELS[k] }}<span class="hint-text">{{ ATTR_EN[k] }}</span></span>
+                  <span class="lbl">{{ $dn(ATTR_LABELS[k]) }}<span class="hint-text">{{ ATTR_EN[k] }}</span></span>
                   <span class="line grow center">{{ effectiveAttr(k) }}</span>
                 </div>
               </div>
               <div class="divider"></div>
               <div class="attr-group">
                 <div v-for="k in ['pow','siz','edu','int']" :key="k" class="writable-row">
-                  <span class="lbl">{{ ATTR_LABELS[k] }}<span class="hint-text">{{ ATTR_EN[k] }}</span></span>
+                  <span class="lbl">{{ $dn(ATTR_LABELS[k]) }}<span class="hint-text">{{ ATTR_EN[k] }}</span></span>
                   <span class="line grow center">{{ effectiveAttr(k) }}</span>
                 </div>
               </div>
@@ -190,12 +219,12 @@ async function doSaikoBase64() {
           <!-- 幸运（上方带头像） -->
           <section class="paper-section luck">
             <div class="avatar-box">
-              <img v-if="character.avatar" :src="character.avatar" alt="头像" />
-              <span v-else class="avatar-empty">无头像</span>
+              <img v-if="character.avatar" :src="character.avatar" :alt="$t('basic.avatarAlt')" />
+              <span v-else class="avatar-empty">{{ $t('overall.noAvatar') }}</span>
             </div>
-            <div class="header luck-header"><h1 class="heading"><span class="title">幸运</span><span class="subtitle">Luck</span></h1></div>
+            <div class="header luck-header"><h1 class="heading"><span class="title">{{ $t('overall.luck') }}</span><span class="subtitle">{{ $t('overall.luckSub') }}</span></h1></div>
             <div class="body luck-body">
-              <div class="writable-row"><span class="lbl">幸运</span><span class="line grow center">{{ effectiveAttr('luc') }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.luck') }}</span><span class="line grow center">{{ effectiveAttr('luc') }}</span></div>
             </div>
           </section>
         </div>
@@ -203,38 +232,38 @@ async function doSaikoBase64() {
         <!-- 衍生属性 -->
         <div class="derive-sections">
           <section class="paper-section sanity">
-            <div class="header"><h1 class="heading"><span class="title">理智值</span><span class="subtitle">Sanity</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.sanity') }}</span><span class="subtitle">{{ $t('overall.sanitySub') }}</span></h1></div>
             <div class="body units">
-              <div class="unit"><span class="u-label">当前 / 最大</span><span class="u-val">{{ derived.san }}<span class="u-slash">/</span>{{ derived.sanMax }}</span></div>
+              <div class="unit"><span class="u-label">{{ $t('overall.curMax') }}</span><span class="u-val">{{ derived.san }}<span class="u-slash">/</span>{{ derived.sanMax }}</span></div>
             </div>
           </section>
           <section class="paper-section hp">
-            <div class="header"><h1 class="heading"><span class="title">生命值</span><span class="subtitle">HP</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.hp') }}</span><span class="subtitle">{{ $t('overall.hpSub') }}</span></h1></div>
             <div class="body units">
-              <div class="unit"><span class="u-label">当前 / 最大</span><span class="u-val">{{ derived.hp }}<span class="u-slash">/</span>{{ derived.hpMax }}</span></div>
+              <div class="unit"><span class="u-label">{{ $t('overall.curMax') }}</span><span class="u-val">{{ derived.hp }}<span class="u-slash">/</span>{{ derived.hpMax }}</span></div>
             </div>
           </section>
           <section class="paper-section mp">
-            <div class="header"><h1 class="heading"><span class="title">魔法值</span><span class="subtitle">MP</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.mp') }}</span><span class="subtitle">{{ $t('overall.mpSub') }}</span></h1></div>
             <div class="body units">
-              <div class="unit"><span class="u-label">当前 / 最大</span><span class="u-val">{{ derived.mp }}<span class="u-slash">/</span>{{ derived.mpMax }}</span></div>
+              <div class="unit"><span class="u-label">{{ $t('overall.curMax') }}</span><span class="u-val">{{ derived.mp }}<span class="u-slash">/</span>{{ derived.mpMax }}</span></div>
             </div>
           </section>
           <section class="paper-section body-status">
-            <div class="header"><h1 class="heading"><span class="title">身体状态</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.body') }}</span></h1></div>
             <div class="body status-grid">
-              <div class="status"><span class="cb"></span><span>重伤</span></div>
-              <div class="status"><span class="cb"></span><span>昏迷</span></div>
-              <div class="status"><span class="cb"></span><span>濒死</span></div>
-              <div class="status"><span class="cb"></span><span>死亡</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.severe') }}</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.unconscious') }}</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.dying') }}</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.dead') }}</span></div>
             </div>
           </section>
           <section class="paper-section mental-status">
-            <div class="header"><h1 class="heading"><span class="title">精神状态</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.mental') }}</span></h1></div>
             <div class="body status-grid">
-              <div class="status"><span class="cb"></span><span>临时疯狂</span></div>
-              <div class="status"><span class="cb"></span><span>永久疯狂</span></div>
-              <div class="status"><span class="cb"></span><span>不定期疯狂</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.tempMad') }}</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.permMad') }}</span></div>
+              <div class="status"><span class="cb"></span><span>{{ $t('overall.indefMad') }}</span></div>
             </div>
           </section>
         </div>
@@ -242,16 +271,16 @@ async function doSaikoBase64() {
         <!-- 技能表 -->
         <section class="paper-section skill-section">
           <div class="header">
-            <h1 class="heading"><span class="title">技能表</span><span class="subtitle">Skill</span></h1>
+            <h1 class="heading"><span class="title">{{ $t('overall.skillTitle') }}</span><span class="subtitle">{{ $t('overall.skillSub') }}</span></h1>
           </div>
           <div class="body skill-body">
             <div class="skill-col">
               <table class="skill-table">
-                <thead><tr><th class="th-deep th-grp"></th><th class="th-deep th-name">技能</th><th class="th-light">基础%</th><th class="th-deep">职业%</th><th class="th-light">兴趣%</th><th class="th-deep">成长%</th><th class="th-light">成功率%</th></tr></thead>
+                <thead><tr><th class="th-deep th-grp"></th><th class="th-deep th-name">{{ $t('overall.skillName') }}</th><th class="th-light">{{ $t('overall.base') }}</th><th class="th-deep">{{ $t('overall.pro') }}</th><th class="th-light">{{ $t('overall.interest') }}</th><th class="th-deep">{{ $t('overall.growth') }}</th><th class="th-light">{{ $t('overall.rate') }}</th></tr></thead>
                 <tbody>
                   <template v-for="(sec, si) in skillLeft" :key="sec.groupName">
                     <tr v-for="(row, ri) in sec.rows" :key="row.key">
-                      <td v-if="ri === 0" :rowspan="sec.rows.length" class="td-grp">{{ sec.groupName }}</td>
+                      <td v-if="ri === 0" :rowspan="sec.rows.length" class="td-grp" :class="{ vertical: locale.code === 'en' }">{{ $dn(sec.groupName) }}</td>
                       <td class="td-name" :class="{ odd: si % 2 === 0 }">{{ row.label }}<span v-if="isOccupationSkill(row.key)" class="occ-mark">※</span></td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ baseDisplay(row.key) }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).pro || '' }}</td>
@@ -266,11 +295,11 @@ async function doSaikoBase64() {
             <div class="skill-divider"></div>
             <div class="skill-col">
               <table class="skill-table">
-                <thead><tr><th class="th-deep th-grp"></th><th class="th-deep th-name">技能</th><th class="th-light">基础%</th><th class="th-deep">职业%</th><th class="th-light">兴趣%</th><th class="th-deep">成长%</th><th class="th-light">成功率%</th></tr></thead>
+                <thead><tr><th class="th-deep th-grp"></th><th class="th-deep th-name">{{ $t('overall.skillName') }}</th><th class="th-light">{{ $t('overall.base') }}</th><th class="th-deep">{{ $t('overall.pro') }}</th><th class="th-light">{{ $t('overall.interest') }}</th><th class="th-deep">{{ $t('overall.growth') }}</th><th class="th-light">{{ $t('overall.rate') }}</th></tr></thead>
                 <tbody>
                   <template v-for="(sec, si) in skillRight" :key="sec.groupName">
                     <tr v-for="(row, ri) in sec.rows" :key="row.key">
-                      <td v-if="ri === 0" :rowspan="sec.rows.length" class="td-grp">{{ sec.groupName }}</td>
+                      <td v-if="ri === 0" :rowspan="sec.rows.length" class="td-grp" :class="{ vertical: locale.code === 'en' }">{{ $dn(sec.groupName) }}</td>
                       <td class="td-name" :class="{ odd: si % 2 === 0 }">{{ row.label }}<span v-if="isOccupationSkill(row.key)" class="occ-mark">※</span></td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ baseDisplay(row.key) }}</td>
                       <td class="td-num" :class="{ odd: si % 2 === 0 }">{{ skillRow(row.key).pro || '' }}</td>
@@ -288,19 +317,19 @@ async function doSaikoBase64() {
         <!-- 武器 | 战斗 -->
         <div class="section-row">
           <section class="paper-section weapon">
-            <div class="header"><h1 class="heading"><span class="title">武器</span><span class="subtitle">Weapons</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.weapons') }}</span><span class="subtitle">{{ $t('overall.weaponsSub') }}</span></h1></div>
             <div class="body weapon-body">
               <div class="weapon-row wp-head">
-                <span class="th-deep">武器名称</span><span class="th-light">使用技能</span><span class="th-deep">%</span><span class="th-light">伤害</span><span class="th-deep">射程</span><span class="th-light">贯穿</span><span class="th-deep">次数</span><span class="th-light">装弹量</span><span class="th-deep">故障</span>
+                <span class="th-deep">{{ $t('overall.wpName') }}</span><span class="th-light">{{ $t('overall.wpSkill') }}</span><span class="th-deep">{{ $t('overall.wpPct') }}</span><span class="th-light">{{ $t('overall.wpDam') }}</span><span class="th-deep">{{ $t('overall.wpRange') }}</span><span class="th-light">{{ $t('overall.wpTho') }}</span><span class="th-deep">{{ $t('overall.wpRound') }}</span><span class="th-light">{{ $t('overall.wpNum') }}</span><span class="th-deep">{{ $t('overall.wpErr') }}</span>
               </div>
               <div v-for="i in 5" :key="i" class="weapon-row">
                 <template v-if="character.weapons[i - 1]">
-                  <span>{{ character.weapons[i - 1].name }}</span>
-                  <span>{{ character.weapons[i - 1].skill }}</span>
+                  <span>{{ $dn(character.weapons[i - 1].name) }}</span>
+                  <span>{{ $sl(character.weapons[i - 1].skill) }}</span>
                   <span></span>
                   <span>{{ character.weapons[i - 1].dam }}</span>
                   <span>{{ character.weapons[i - 1].range }}</span>
-                  <span>{{ character.weapons[i - 1].tho ? '是' : '' }}</span>
+                  <span>{{ character.weapons[i - 1].tho ? $t('weapon.yes') : '' }}</span>
                   <span>{{ character.weapons[i - 1].round }}</span>
                   <span>{{ character.weapons[i - 1].num }}</span>
                   <span>{{ character.weapons[i - 1].err }}</span>
@@ -312,17 +341,17 @@ async function doSaikoBase64() {
             </div>
           </section>
           <section class="paper-section battle">
-            <div class="header"><h1 class="heading"><span class="title">战斗</span><span class="subtitle">Combat</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.combat') }}</span><span class="subtitle">{{ $t('overall.combatSub') }}</span></h1></div>
             <div class="body battle-body">
-              <div class="writable-row"><span class="lbl">伤害加值</span><span class="line grow center">{{ derived.db }}</span></div>
-              <div class="writable-row"><span class="lbl">体格</span><span class="line grow center">{{ derived.build }}</span></div>
-              <div class="writable-row"><span class="lbl">护甲</span><span class="line grow center">{{ armorText }}</span></div>
-              <div class="writable-row"><span class="lbl">移动力</span><span class="line grow center">{{ derived.mov }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.db') }}</span><span class="line grow center">{{ derived.db }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.build') }}</span><span class="line grow center">{{ derived.build }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.armor') }}</span><span class="line grow center">{{ armorText }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.mov') }}</span><span class="line grow center">{{ derived.mov }}</span></div>
             </div>
           </section>
         </div>
 
-        <div class="copyright">「克苏鲁的呼唤」7版人物卡</div>
+        <div class="copyright">{{ $t('overall.copyright') }}</div>
       </div>
     </div>
 
@@ -331,21 +360,21 @@ async function doSaikoBase64() {
       <div class="paper-content">
         <!-- 背景故事 -->
         <section class="paper-section story">
-          <div class="header"><h1 class="heading"><span class="title">背景故事</span><span class="subtitle">Story</span></h1></div>
+          <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.story') }}</span><span class="subtitle">{{ $t('overall.storySub') }}</span></h1></div>
           <div class="body story-body">
             <div class="story-col col-2">
               <div v-if="eraInfoText" class="area">
-                <span class="area-label">时代特性</span>
+                <span class="area-label">{{ $t('overall.eraFeature') }}</span>
                 <div class="area-text">{{ eraInfoText }}</div>
               </div>
-              <div v-for="f in [['app','形象描述'],['belief','思想与信念'],['importantPerson','重要之人'],['place','意义非凡之地'],['item','宝贵之物'],['trait','特质'],['scar','伤口与疤痕'],['mad','精神症状']]" :key="f[0]" class="area">
-                <span class="area-label">{{ f[1] }}</span>
-                <div class="area-text">{{ bg[f[0]] }}</div>
+              <div v-for="f in ['app','belief','importantPerson','place','item','trait','scar','mad']" :key="f" class="area">
+                <span class="area-label">{{ $t('overall.storyFields.' + f) }}</span>
+                <div class="area-text">{{ bg[f] }}</div>
               </div>
             </div>
             <div class="story-col col-3">
               <div class="area tall">
-                <span class="area-label">个人介绍</span>
+                <span class="area-label">{{ $t('overall.storyFields.desc') }}</span>
                 <div class="area-text">{{ bg.desc }}</div>
               </div>
             </div>
@@ -355,24 +384,24 @@ async function doSaikoBase64() {
         <!-- 物品 | 资产 | 神话 -->
         <div class="section-row">
           <section class="paper-section item">
-            <div class="header"><h1 class="heading"><span class="title">物品与装备</span><span class="subtitle">Possessions</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.possessions') }}</span><span class="subtitle">{{ $t('overall.possessionsSub') }}</span></h1></div>
             <div class="body area pad"><div class="area-text">{{ itemText }}</div></div>
           </section>
           <section class="paper-section assets">
-            <div class="header"><h1 class="heading"><span class="title">资产</span><span class="subtitle">Cash & Assets</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.assets') }}</span><span class="subtitle">{{ $t('overall.assetsSub2') }}</span></h1></div>
             <div class="body pad">
-              <div class="writable-row"><span class="lbl">信用评级</span><span class="line grow center">{{ creditRatingValue }}</span></div>
-              <div class="writable-row"><span class="lbl">现金</span><span class="line grow center">{{ currency.symbol }}{{ cashInfo.amount }}</span></div>
-              <div class="writable-row"><span class="lbl">消费水平</span><span class="line grow center">{{ livingStandard.name }}</span></div>
-              <div class="area"><span class="area-label">资产</span><div class="area-text">{{ assetText }}</div></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.credit') }}</span><span class="line grow center">{{ creditRatingValue }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.cash') }}</span><span class="line grow center">{{ currency.symbol }}{{ cashInfo.amount }}</span></div>
+              <div class="writable-row"><span class="lbl">{{ $t('overall.spending') }}</span><span class="line grow center">{{ $dn(livingStandard.name) }}</span></div>
+              <div class="area"><span class="area-label">{{ $t('overall.assets') }}</span><div class="area-text">{{ assetText }}</div></div>
             </div>
           </section>
           <section class="paper-section mythos">
-            <div class="header"><h1 class="heading"><span class="title">克苏鲁神话</span><span class="subtitle">Cthulhu Mythos</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.mythos') }}</span><span class="subtitle">{{ $t('overall.mythosSub') }}</span></h1></div>
             <div class="body pad">
-              <div class="area"><span class="area-label">魔法物品与典籍</span><div class="area-text">{{ mythosItemText }}</div></div>
-              <div class="area"><span class="area-label">法术</span><div class="area-text">{{ spellText }}</div></div>
-              <div class="area"><span class="area-label">第三类接触</span><div class="area-text">{{ contactText }}</div></div>
+              <div class="area"><span class="area-label">{{ $t('overall.tomes') }}</span><div class="area-text">{{ mythosItemText }}</div></div>
+              <div class="area"><span class="area-label">{{ $t('overall.spells') }}</span><div class="area-text">{{ spellText }}</div></div>
+              <div class="area"><span class="area-label">{{ $t('overall.encounters') }}</span><div class="area-text">{{ contactText }}</div></div>
             </div>
           </section>
         </div>
@@ -380,16 +409,16 @@ async function doSaikoBase64() {
         <!-- 人物关系 | 经历 -->
         <div class="section-row">
           <section class="paper-section friend">
-            <div class="header"><h1 class="heading"><span class="title">人物关系</span><span class="subtitle">Relationships</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.relations') }}</span><span class="subtitle">{{ $t('overall.relationsSub') }}</span></h1></div>
             <div class="body area pad tall"><div class="area-text">{{ relationText }}</div></div>
           </section>
           <section class="paper-section experience">
-            <div class="header"><h1 class="heading"><span class="title">经历过的模组</span><span class="subtitle">Scenarios</span></h1></div>
+            <div class="header"><h1 class="heading"><span class="title">{{ $t('overall.scenarios') }}</span><span class="subtitle">{{ $t('overall.scenariosSub') }}</span></h1></div>
             <div class="body area pad tall"><div class="area-text">{{ scenarioText }}</div></div>
           </section>
         </div>
 
-        <div class="copyright">©2010-2026 Arclight, Inc. ©2020 Chaosium Inc.</div>
+        <div class="copyright">{{ $t('overall.copyright2') }}</div>
       </div>
     </div>
   </div>
@@ -512,6 +541,15 @@ async function doSaikoBase64() {
 .th-grp { width: 1.4em; }
 .th-name { width: 8em; text-align: left; }
 .skill-table .td-grp { border: 1px solid var(--p-black); border-left: none; border-bottom: none; font-size: 0.85em; }
+/* 英文下技能分类名竖排（横排放不下） */
+.skill-table .td-grp.vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.06em;
+  padding: 0.35em 0.1em;
+  font-size: 0.7em;
+  white-space: nowrap;
+}
 .skill-table .td-name { text-align: left; }
 .skill-table .td-num { background-color: hsl(0, 0%, 93%); }
 .skill-table .td-num.odd { background-color: #fff; }

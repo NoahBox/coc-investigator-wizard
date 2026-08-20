@@ -4,6 +4,7 @@ import { character, saveCharacter } from '../../store.js';
 import { getEra, eraArmor, eraShields, eraFeatures, eraDiceTables, eraSkillBaseAdjust, eraFactions, shieldWeaponNames, ARMOR_ERAS } from '../../data/eras.js';
 import { getWeapon } from '../../data/weapons.js';
 import { ATTR_LABELS } from '../../data/rules.js';
+import { t, dataName } from '../../i18n.js';
 
 const era = computed(() => getEra(character.era));
 // 古代设定（不败 / 黑暗 / 冰岛）可选择防具与盾牌
@@ -35,8 +36,8 @@ const currentRoll = computed(() => {
 function effectSummary(entry) {
   if (!entry) return '';
   const parts = [];
-  Object.entries(entry.attr || {}).forEach(([k, v]) => parts.push(`${v > 0 ? '+' : ''}${v} ${ATTR_LABELS[k] || k}`));
-  Object.entries(entry.skill || {}).forEach(([k, v]) => parts.push(`${v > 0 ? '+' : ''}${v}「${k}」`));
+  Object.entries(entry.attr || {}).forEach(([k, v]) => parts.push(`${v > 0 ? '+' : ''}${v} ${dataName(ATTR_LABELS[k] || k)}`));
+  Object.entries(entry.skill || {}).forEach(([k, v]) => parts.push(`${v > 0 ? '+' : ''}${v}「${dataName(k)}」`));
   return parts.join('，');
 }
 
@@ -88,17 +89,17 @@ function selectNoShield() {
   <div class="step fade-in">
     <div class="card">
       <div class="card-title">
-        <h2>时代特性</h2>
-        <span class="sub">Era Features</span>
+        <h2>{{ $t('era.title') }}</h2>
+        <span class="sub">{{ $t('era.sub') }}</span>
         <span class="spacer"></span>
-        <span v-if="era" class="serif accent">{{ era.label }}</span>
+        <span v-if="era" class="serif accent">{{ $dn(era.label) }}</span>
       </div>
       <div class="card-body">
         <!-- 防具与盾牌（克苏鲁不败 / 黑暗时代 / 神秘冰岛） -->
         <template v-if="hasArmor">
           <div class="grid-2 mt-16">
             <div>
-              <label class="lbl">防具</label>
+              <label class="lbl">{{ $t('era.armor') }}</label>
               <div class="pick-list">
                 <div
                   class="pick-item"
@@ -107,30 +108,30 @@ function selectNoShield() {
                   :key="a.name"
                   @click="selectArmor(a.name)"
                 >
-                  <span class="grow">{{ a.name }}</span>
-                  <span class="small dim">护甲 {{ a.armor }}</span>
+                  <span class="grow">{{ $dn(a.name) }}</span>
+                  <span class="small dim">{{ $t('era.armorVal', { a: a.armor }) }}</span>
                 </div>
                 <div
                   class="pick-item"
                   :class="{ active: !character.eraArmor }"
                   @click="selectArmor('')"
                 >
-                  <span class="grow">无（普通衣物）</span>
-                  <span class="small dim">护甲 0</span>
+                  <span class="grow">{{ $t('era.noArmor') }}</span>
+                  <span class="small dim">{{ $t('era.armor0') }}</span>
                 </div>
               </div>
-              <p class="hint mt-8">每次成功攻击时按所列骰值投掷可变护甲。</p>
+              <p class="hint mt-8">{{ $t('era.armorHint') }}</p>
             </div>
 
             <div>
-              <label class="lbl">盾牌</label>
+              <label class="lbl">{{ $t('era.shield') }}</label>
               <div class="pick-list">
                 <div
                   class="pick-item"
                   :class="{ active: !character.eraShield }"
                   @click="selectNoShield"
                 >
-                  <span class="grow">不使用盾牌</span>
+                  <span class="grow">{{ $t('era.noShield') }}</span>
                 </div>
                 <div
                   class="pick-item"
@@ -139,11 +140,11 @@ function selectNoShield() {
                   :key="s.name"
                   @click="selectShield(s.name)"
                 >
-                  <span class="grow">{{ s.name }}</span>
-                  <span class="small dim">护甲 {{ s.armor }} · 伤害 {{ s.dam }}<template v-if="s.str !== '-'"> · {{ s.str }}/{{ s.dex }}</template></span>
+                  <span class="grow">{{ $dn(s.name) }}</span>
+                  <span class="small dim">{{ $t('era.shieldMeta', { a: s.armor, d: s.dam, extra: s.str !== '-' ? ' · ' + s.str + '/' + s.dex : '' }) }}</span>
                 </div>
               </div>
-              <p class="hint mt-8">选择盾牌后会自动添加进「武器」列表（使用「格斗（盾）」技能）；战斗中可用「格斗（盾）」代替闪避，失败也能获得盾牌护甲。</p>
+              <p class="hint mt-8">{{ $t('era.shieldHint') }}</p>
             </div>
           </div>
         </template>
@@ -151,39 +152,39 @@ function selectNoShield() {
         <!-- 出生预兆 / 大事记 掷骰表（克苏鲁不败 / 黑暗时代） -->
         <div v-if="diceTable" class="dice-panel mt-16">
           <div class="dice-head">
-            <span class="serif">{{ diceTable.title }}（1D10）</span>
-            <button class="btn primary" @click="rollEraDice"><font-awesome-icon icon="fa-solid fa-dice" />掷骰 1D10</button>
+            <span class="serif">{{ $dn(diceTable.title) }}（1D10）</span>
+            <button class="btn primary" @click="rollEraDice"><font-awesome-icon icon="fa-solid fa-dice" />{{ $t('era.roll1D10') }}</button>
           </div>
-          <p class="hint">{{ diceTable.desc }}</p>
+          <p class="hint">{{ $ft(diceTable.desc) }}</p>
 
           <div v-if="currentRoll" class="dice-result">
             <span>
-              结果 <b class="accent">{{ currentRoll.dice }}</b> — {{ currentRoll.entry.text }}
-              <span class="small dim">（已应用 {{ effectSummary(currentRoll.entry) }}）</span>
+              {{ $t('era.result', { dice: currentRoll.dice, text: $dn(currentRoll.entry.text) }) }}
+              <span class="small dim">{{ $t('era.applied', { s: effectSummary(currentRoll.entry) }) }}</span>
             </span>
-            <button class="btn sm ghost danger" @click="clearEraDice">清除修正</button>
+            <button class="btn sm ghost danger" @click="clearEraDice">{{ $t('era.clear') }}</button>
           </div>
-          <p v-else class="small dim mt-8">尚未掷骰 —— 点击上方按钮随机抽取一项并自动应用数值变化。</p>
+          <p v-else class="small dim mt-8">{{ $t('era.notRolled') }}</p>
 
           <ul class="dice-list">
             <li v-for="(e, i) in diceTable.entries" :key="i" :class="{ active: currentRoll && currentRoll.dice === i + 1 }">
               <span class="dice-num">{{ i + 1 }}</span>
-              <span>{{ e.text }}</span>
-              <span class="dim">{{ e.note }}</span>
+              <span>{{ $dn(e.text) }}</span>
+              <span class="dim">{{ $ft(e.note) }}</span>
             </li>
           </ul>
         </div>
 
         <!-- 派系选择（克苏鲁伊卡洛斯：船员派系） -->
         <div v-if="factions.length" class="mt-16">
-          <label class="lbl">船员派系</label>
+          <label class="lbl">{{ $t('era.faction') }}</label>
           <div class="pick-list">
             <div
               class="pick-item"
               :class="{ active: !character.eraFaction }"
               @click="selectFaction('')"
             >
-              <span class="grow">未指定</span>
+              <span class="grow">{{ $t('era.noFaction') }}</span>
             </div>
             <div
               class="pick-item"
@@ -192,27 +193,27 @@ function selectNoShield() {
               :key="f.name"
               @click="selectFaction(f.name)"
             >
-              <span class="grow">{{ f.name }}</span>
-              <span class="small dim">{{ f.desc }}</span>
+              <span class="grow">{{ $dn(f.name) }}</span>
+              <span class="small dim">{{ $ft(f.desc) }}</span>
             </div>
           </div>
         </div>
 
         <!-- 技能初始值调整（已自动应用，切换时代即清除） -->
         <div v-if="hasBaseAdjust" class="mt-16">
-          <label class="lbl">技能初始值调整</label>
+          <label class="lbl">{{ $t('era.baseAdjust') }}</label>
           <ul class="feat-list">
             <li v-for="(v, name) in baseAdjust" :key="name">
-              「{{ name }}」基础值 → <b>{{ v }}%</b>
+              {{ $t('era.baseAdjustVal', { name: $dn(name), v: v }) }}
             </li>
           </ul>
         </div>
 
         <!-- 时代专属规则说明 -->
         <div v-if="features.length" class="mt-16">
-          <label class="lbl">时代规则</label>
+          <label class="lbl">{{ $t('era.eraRules') }}</label>
           <ul class="feat-list">
-            <li v-for="(f, i) in features" :key="i">{{ f }}</li>
+            <li v-for="(f, i) in features" :key="i">{{ $ft(f) }}</li>
           </ul>
         </div>
       </div>

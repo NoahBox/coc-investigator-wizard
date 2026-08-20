@@ -4,14 +4,14 @@ import { character, saveCharacter, currentJob, splitSkillKey } from '../../store
 import { jobGroups, EXP_BOOKS, getExpBooks, eraJobGroups } from '../../data/jobs.js';
 import { ERAS, shieldWeaponNames } from '../../data/eras.js';
 import { ATTR_LABELS, ATTR_KEYS } from '../../data/rules.js';
+import { t, dataName, dataNameWithTag, skillLabel, locale } from '../../i18n.js';
 import AvatarCropper from '../AvatarCropper.vue';
 
 const countries = ['美国', '中国', '日本'];
 const eras = [
-  { v: 'modern', label: '现代', desc: '当代世界设定，信息时代的技术与全球化背景下的现代克苏鲁调查。' },
-  { v: '1920s', label: '1920s', desc: '经典时代设定，爵士时代与禁酒令时期的美国，克苏鲁的呼唤原初背景。' },
-  // 《克苏鲁时空穿梭》7个扩展时代
-  ...ERAS.map(e => ({ v: e.id, label: e.short, desc: e.desc })),
+  { v: 'modern', label: () => dataName('现代'), desc: '' },
+  { v: '1920s', label: () => '1920s', desc: '' },
+  ...ERAS.map(e => ({ v: e.id, label: () => dataName(e.short), desc: e.desc })),
 ];
 
 // 按扩展书开关过滤职业列表：关闭某来源的开关后，该来源（及同时带有该标记）的职业不再出现在下拉框
@@ -51,24 +51,25 @@ function showName(name) { return (name || '').replace(/Ω/g, ''); }
 // 格式化本职技能列表
 function formatSkills(job) {
   if (!job || !job.skills) return '';
+  const sep = locale.code === 'zh' ? '、' : '; ';
   return job.skills.map((sk) => {
-    if (typeof sk === 'string') return showName(sk);
+    if (typeof sk === 'string') return dataName(sk);
     if (Array.isArray(sk)) {
       const opts = sk.map((o) => {
-        if (typeof o === 'string') return showName(o);
+        if (typeof o === 'string') return dataName(o);
         const key = Object.keys(o)[0];
         const child = o[key];
-        return child ? `${showName(key)}（${showName(child)}）` : showName(key);
+        return child ? skillLabel(`${key}(${child})`) : dataName(key);
       });
-      return opts.join(' / ') + '（任选其一）';
+      return opts.join(' / ') + '(' + t('basic.anyOne') + ')';
     }
     const key = Object.keys(sk)[0];
     const child = sk[key];
     const { name, child: keyChild } = splitSkillKey(key);
-    if (child) return `${showName(name)}（${showName(child)}）`;
-    if (keyChild) return `${showName(name)}（${showName(keyChild)}）`;
-    return showName(name);
-  }).join('、');
+    if (child) return skillLabel(`${name}(${child})`);
+    if (keyChild) return skillLabel(`${name}(${keyChild})`);
+    return dataName(name);
+  }).join(sep);
 }
 
 // 格式化职业技能点数计算方式
@@ -77,10 +78,10 @@ function formatPointFormula(job) {
   return job.point.map((unitGroup) => {
     if (unitGroup.length === 1) {
       const [attrKey, mult] = unitGroup[0];
-      return `${ATTR_LABELS[attrKey]}×${mult}`;
+      return `${dataName(ATTR_LABELS[attrKey])}×${mult}`;
     }
-    const opts = unitGroup.map(([attrKey, mult]) => `${ATTR_LABELS[attrKey]}×${mult}`);
-    return `（${opts.join(' 或 ')}）`;
+    const opts = unitGroup.map(([attrKey, mult]) => `${dataName(ATTR_LABELS[attrKey])}×${mult}`);
+    return `（${opts.join(' ' + t('basic.or') + ' ')}）`;
   }).join(' + ');
 }
 
@@ -113,89 +114,89 @@ function removeAvatar() {
 <template>
   <div class="step fade-in">
     <div class="card">
-      <div class="card-title"><h2>调查员基本信息</h2><span class="sub">Investigator Basics</span></div>
+      <div class="card-title"><h2>{{ $t('basic.title') }}</h2><span class="sub">{{ $t('basic.sub') }}</span></div>
       <div class="card-body">
         <!-- 头像 + 基本信息（头像在 grid-2 / grid-3 左侧） -->
         <div class="basic-top">
           <div class="avatar-col">
-            <div class="avatar-preview" @click="pickAvatar" title="点击上传头像">
-              <img v-if="character.avatar" :src="character.avatar" alt="头像" />
-              <span v-else class="avatar-placeholder">☽<br /><small>点击上传</small></span>
+            <div class="avatar-preview" @click="pickAvatar" :title="$t('basic.avatarClick')">
+              <img v-if="character.avatar" :src="character.avatar" :alt="$t('basic.avatarAlt')" />
+              <span v-else class="avatar-placeholder">☽<br /><small>{{ $t('basic.avatarUpload').split('\n')[1] || $t('basic.avatarClick') }}</small></span>
             </div>
           </div>
           <div class="basic-main">
             <div class="grid-2">
               <div>
-                <label class="lbl">姓名</label>
-                <input class="inp" v-model="character.name" @input="saveCharacter" placeholder="调查员的姓名" />
+                <label class="lbl">{{ $t('basic.name') }}</label>
+                <input class="inp" v-model="character.name" @input="saveCharacter" :placeholder="$t('basic.namePh')" />
               </div>
               <div>
-                <label class="lbl">玩家</label>
-                <input class="inp" v-model="character.player" @input="saveCharacter" placeholder="玩家名" />
+                <label class="lbl">{{ $t('basic.player') }}</label>
+                <input class="inp" v-model="character.player" @input="saveCharacter" :placeholder="$t('basic.playerPh')" />
               </div>
             </div>
 
             <div class="grid-3">
               <div>
-                <label class="lbl">年龄</label>
-                <input class="inp" type="number" min="1" max="120" v-model="character.age" @input="saveCharacter" placeholder="年龄" />
+                <label class="lbl">{{ $t('basic.age') }}</label>
+                <input class="inp" type="number" min="1" max="120" v-model="character.age" @input="saveCharacter" :placeholder="$t('basic.agePh')" />
               </div>
               <div>
-                <label class="lbl">启用年龄修正</label>
+                <label class="lbl">{{ $t('basic.ageModifier') }}</label>
                 <label class="switch" style="margin-top:9px">
                   <input type="checkbox" v-model="character.ageModifier" @change="saveCharacter" />
                   <span class="track"></span>
-                  <span class="small dim">{{ character.ageModifier ? '已启用' : '未启用' }}</span>
+                  <span class="small dim">{{ character.ageModifier ? $t('basic.enabled') : $t('basic.disabled') }}</span>
                 </label>
               </div>
               <div>
-                <label class="lbl">性别</label>
+                <label class="lbl">{{ $t('basic.gender') }}</label>
                 <div class="seg" style="margin-top:2px">
-                  <span class="seg-item" :class="{ active: character.gender === '男' }" @click="character.gender = '男'; saveCharacter()">男</span>
-                  <span class="seg-item" :class="{ active: character.gender === '女' }" @click="character.gender = '女'; saveCharacter()">女</span>
-                  <span class="seg-item" :class="{ active: character.gender === '其他' }" @click="character.gender = '其他'; saveCharacter()">其他</span>
+                  <span class="seg-item" :class="{ active: character.gender === '男' }" @click="character.gender = '男'; saveCharacter()">{{ $t('basic.male') }}</span>
+                  <span class="seg-item" :class="{ active: character.gender === '女' }" @click="character.gender = '女'; saveCharacter()">{{ $t('basic.female') }}</span>
+                  <span class="seg-item" :class="{ active: character.gender === '其他' }" @click="character.gender = '其他'; saveCharacter()">{{ $t('basic.other') }}</span>
                 </div>
-                <input v-if="character.gender === '其他'" class="inp mt-8" v-model="character.genderOther" @input="saveCharacter" placeholder="请填写" />
+                <input v-if="character.gender === '其他'" class="inp mt-8" v-model="character.genderOther" @input="saveCharacter" :placeholder="$t('basic.otherPh')" />
               </div>
             </div>
           </div>
         </div>
-        <button v-if="character.avatar" class="btn sm ghost danger mt-8" @click="removeAvatar">移除头像</button>
+        <button v-if="character.avatar" class="btn sm ghost danger mt-8" @click="removeAvatar">{{ $t('basic.removeAvatar') }}</button>
         <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileChange" />
         <AvatarCropper v-if="cropperOpen" :src="cropSrc" @confirm="onCropConfirm" @cancel="cropperOpen = false; cropSrc = ''" />
 
         <div class="grid-3">
           <div>
-            <label class="lbl">国家</label>
+            <label class="lbl">{{ $t('basic.country') }}</label>
             <select class="inp" v-model="character.country" @change="saveCharacter">
-              <option v-for="c in countries" :key="c" :value="c">{{ c }}</option>
-              <option value="其他">其他（填写）</option>
+              <option v-for="c in countries" :key="c" :value="c">{{ $dn(c) }}</option>
+              <option value="其他">{{ $t('basic.countryOther') }}</option>
             </select>
-            <input v-if="character.country === '其他'" class="inp mt-8" v-model="character.countryOther" @input="saveCharacter" placeholder="填写国家" />
+            <input v-if="character.country === '其他'" class="inp mt-8" v-model="character.countryOther" @input="saveCharacter" :placeholder="$t('basic.countryOtherPh')" />
           </div>
           <div>
-            <label class="lbl">故乡</label>
-            <input class="inp" v-model="character.hometown" @input="saveCharacter" placeholder="故乡" />
+            <label class="lbl">{{ $t('basic.hometown') }}</label>
+            <input class="inp" v-model="character.hometown" @input="saveCharacter" :placeholder="$t('basic.hometownPh')" />
           </div>
           <div>
-            <label class="lbl">住地</label>
-            <input class="inp" v-model="character.residence" @input="saveCharacter" placeholder="现居地" />
+            <label class="lbl">{{ $t('basic.residence') }}</label>
+            <input class="inp" v-model="character.residence" @input="saveCharacter" :placeholder="$t('basic.residencePh')" />
           </div>
         </div>
 
         <div class="grid-4">
           <div class="era-col">
-            <label class="lbl era">时代</label>
+            <label class="lbl era">{{ $t('basic.era') }}</label>
             <div class="seg era-seg">
-              <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" :title="e.desc" @click="character.era = e.v; saveCharacter()">{{ e.label }}</span>
+              <span v-for="e in eras" :key="e.v" class="seg-item" :class="{ active: character.era === e.v }" :title="e.desc" @click="character.era = e.v; saveCharacter()">{{ e.label() }}</span>
             </div>
           </div>
           <div>
-            <label class="lbl veteran">老卡模式（点数分配无上限）</label>
+            <label class="lbl veteran">{{ $t('basic.legacyMode') }}</label>
             <label class="switch" style="margin-top:9px">
               <input type="checkbox" v-model="character.legacyMode" @change="saveCharacter" />
               <span class="track"></span>
-              <span class="small dim">{{ character.legacyMode ? '已开启' : '未开启' }}</span>
+              <span class="small dim">{{ character.legacyMode ? $t('basic.legacyOn') : $t('basic.legacyOff') }}</span>
             </label>
           </div>
         </div>
@@ -203,16 +204,16 @@ function removeAvatar() {
     </div>
 
     <div class="card mt-16">
-      <div class="card-title"><h2>职业</h2><span class="sub">Occupation</span></div>
+      <div class="card-title"><h2>{{ $t('basic.occupation') }}</h2><span class="sub">{{ $t('basic.occupationSub') }}</span></div>
       <div class="card-body">
         <div v-if="isIcelandFree" class="hint mt-8">
-          神秘冰岛无职业模板：所有调查员不受职业限制，可直接获得 <b>教育×4+智力×2</b> 的技能点数并分配到任意技能上（见「职业技能」步骤）。
+          {{ $t('basic.icelandFree') }}
         </div>
         <template v-else>
         <div class="job-head">
           <div class="seg">
-            <span class="seg-item" :class="{ active: character.jobType === 'preset' }" @click="character.jobType = 'preset'; saveCharacter()">选择职业</span>
-            <span class="seg-item" :class="{ active: character.jobType === 'custom' }" @click="character.jobType = 'custom'; saveCharacter()">自定义职业</span>
+            <span class="seg-item" :class="{ active: character.jobType === 'preset' }" @click="character.jobType = 'preset'; saveCharacter()">{{ $t('basic.chooseJob') }}</span>
+            <span class="seg-item" :class="{ active: character.jobType === 'custom' }" @click="character.jobType = 'custom'; saveCharacter()">{{ $t('basic.customJob') }}</span>
           </div>
           <div class="book-filters" v-if="character.jobType === 'preset'">
             <span
@@ -220,46 +221,46 @@ function removeAvatar() {
               :key="b"
               class="seg-item book-toggle"
               :class="{ active: character.expBooks[b] }"
-              :title="`显示/隐藏【${b}】来源的职业（高亮=显示）`"
+              :title="$t('basic.bookTitle', { b: $dn(b) })"
               @click="character.expBooks[b] = !character.expBooks[b]; saveCharacter()"
-            >{{ b }}</span>
+            >{{ $dn(b) }}</span>
           </div>
         </div>
 
         <template v-if="character.jobType === 'preset'">
-          <label class="lbl">职业</label>
+          <label class="lbl">{{ $t('basic.job') }}</label>
           <select class="inp" v-model="character.jobName" @change="saveCharacter">
-            <option value="" disabled>请选择职业…</option>
-            <optgroup v-for="[group, list] in filteredJobGroups" :key="group" :label="group">
-              <option v-for="j in list" :key="j" :value="j">{{ j }}</option>
+            <option value="" disabled>{{ $t('basic.jobSelectPh') }}</option>
+            <optgroup v-for="[group, list] in filteredJobGroups" :key="group" :label="$dn(group)">
+              <option v-for="j in list" :key="j" :value="j">{{ $dnt(j) }}</option>
             </optgroup>
           </select>
           <template v-if="currentJob">
             <div class="job-info mt-8">
-              <div class="job-info-row"><span class="job-info-label">本职技能</span><span class="job-info-val">{{ formatSkills(currentJob) }}</span></div>
-              <div class="job-info-row"><span class="job-info-label">技能点数</span><span class="job-info-val">{{ formatPointFormula(currentJob) }}</span></div>
-              <div class="job-info-row"><span class="job-info-label">信用评级</span><span class="job-info-val">{{ currentJob.wealth[0] }} – {{ currentJob.wealth[1] }}</span></div>
+              <div class="job-info-row"><span class="job-info-label">{{ $t('basic.occSkills') }}</span><span class="job-info-val">{{ formatSkills(currentJob) }}</span></div>
+              <div class="job-info-row"><span class="job-info-label">{{ $t('basic.pointFormula') }}</span><span class="job-info-val">{{ formatPointFormula(currentJob) }}</span></div>
+              <div class="job-info-row"><span class="job-info-label">{{ $t('basic.creditRange') }}</span><span class="job-info-val">{{ currentJob.wealth[0] }} – {{ currentJob.wealth[1] }}</span></div>
             </div>
           </template>
-          <p v-else class="hint mt-8">职业决定本职技能、信用评级范围与职业技能点数。</p>
+          <p v-else class="hint mt-8">{{ $t('basic.jobHint') }}</p>
         </template>
 
         <template v-else>
           <div class="grid-2">
             <div>
-              <label class="lbl">自定义职业名称</label>
-              <input class="inp" v-model="character.customJobName" @input="saveCharacter" placeholder="例如：记者" />
+              <label class="lbl">{{ $t('basic.customJobName') }}</label>
+              <input class="inp" v-model="character.customJobName" @input="saveCharacter" :placeholder="$t('basic.customJobNamePh')" />
             </div>
             <div>
-              <label class="lbl">职业技能点数公式</label>
+              <label class="lbl">{{ $t('basic.pointFormulaLabel') }}</label>
               <div class="point-formula">
                 <select class="inp" v-model="character.customPointAttr1" @change="saveCharacter">
-                  <option v-for="k in ATTR_KEYS" :key="k" :value="k">{{ ATTR_LABELS[k] }}</option>
+                  <option v-for="k in ATTR_KEYS" :key="k" :value="k">{{ $dn(ATTR_LABELS[k]) }}</option>
                 </select>
                 <span class="pf-op">× 2</span>
                 <span class="pf-plus">+</span>
                 <select class="inp" v-model="character.customPointAttr2" @change="saveCharacter">
-                  <option v-for="k in ATTR_KEYS" :key="k" :value="k">{{ ATTR_LABELS[k] }}</option>
+                  <option v-for="k in ATTR_KEYS" :key="k" :value="k">{{ $dn(ATTR_LABELS[k]) }}</option>
                 </select>
                 <span class="pf-op">× 2</span>
               </div>
@@ -267,15 +268,15 @@ function removeAvatar() {
           </div>
           <div class="grid-2 mt-8">
             <div>
-              <label class="lbl">信用评级下限</label>
+              <label class="lbl">{{ $t('basic.creditMin') }}</label>
               <input class="inp" type="number" v-model.number="character.customWealth[0]" @input="saveCharacter" />
             </div>
             <div>
-              <label class="lbl">信用评级上限</label>
+              <label class="lbl">{{ $t('basic.creditMax') }}</label>
               <input class="inp" type="number" v-model.number="character.customWealth[1]" @input="saveCharacter" />
             </div>
           </div>
-          <p class="hint mt-8">本职技能将在「职业技能」步骤中选择。</p>
+          <p class="hint mt-8">{{ $t('basic.customSkillHint') }}</p>
         </template>
         </template>
       </div>

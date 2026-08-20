@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { character, saveCharacter } from '../store.js';
 import { isEraEra } from '../data/eras.js';
+import { t } from '../i18n.js';
 import BasicStep from './steps/BasicStep.vue';
 import PackageStep from './steps/PackageStep.vue';
 import EraStep from './steps/EraStep.vue';
@@ -19,44 +20,47 @@ import ScenariosStep from './steps/ScenariosStep.vue';
 import OverallStep from './steps/OverallStep.vue';
 import GrowthStep from './steps/GrowthStep.vue';
 
+// 步骤标签按 id 从 i18n 取词（wizard.step.<id>），保持两套步骤表同源
+const labelOf = (id) => t('wizard.step.' + id);
+
 // 创建流程：经验包 / 时代特性位于「幸运与年龄」之后；选择扩展时代时再插入「时代特性」步骤
 const createSteps = computed(() => {
   const base = [
-    { id: 'basic', label: '基本信息' },
-    { id: 'attributes', label: '属性' },
-    { id: 'luck', label: '幸运与年龄' },
-    { id: 'package', label: '经验包' },
-    { id: 'derived', label: '当前数据' },
-    { id: 'proskills', label: '职业技能' },
-    { id: 'interestskills', label: '业余技能' },
-    { id: 'skilloverview', label: '技能总览' },
-    { id: 'weapons', label: '武器' },
-    { id: 'background', label: '背景故事' },
-    { id: 'items', label: '物品与资产' },
-    { id: 'mythos', label: '克苏鲁神话' },
-    { id: 'relations', label: '人物关系' },
-    { id: 'scenarios', label: '经历过的剧本' },
-    { id: 'overall', label: '总览' },
+    { id: 'basic' },
+    { id: 'attributes' },
+    { id: 'luck' },
+    { id: 'package' },
+    { id: 'derived' },
+    { id: 'proskills' },
+    { id: 'interestskills' },
+    { id: 'skilloverview' },
+    { id: 'weapons' },
+    { id: 'background' },
+    { id: 'items' },
+    { id: 'mythos' },
+    { id: 'relations' },
+    { id: 'scenarios' },
+    { id: 'overall' },
   ];
   if (isEraEra(character.era)) {
-    base.splice(4, 0, { id: 'era', label: '时代特性' });
+    base.splice(4, 0, { id: 'era' });
   }
   return base;
 });
 
 const importSteps = [
-  { id: 'basic', label: '基本信息' },
-  { id: 'growth', label: '幕间成长' },
-  { id: 'derived', label: '属性与衍生' },
-  { id: 'proskills', label: '职业技能' },
-  { id: 'interestskills', label: '业余技能' },
-  { id: 'background', label: '背景故事' },
-  { id: 'weapons', label: '武器' },
-  { id: 'items', label: '物品与资产' },
-  { id: 'mythos', label: '克苏鲁神话' },
-  { id: 'relations', label: '人物关系' },
-  { id: 'scenarios', label: '经历过的剧本' },
-  { id: 'overall', label: '总览' },
+  { id: 'basic' },
+  { id: 'growth' },
+  { id: 'derived' },
+  { id: 'proskills' },
+  { id: 'interestskills' },
+  { id: 'background' },
+  { id: 'weapons' },
+  { id: 'items' },
+  { id: 'mythos' },
+  { id: 'relations' },
+  { id: 'scenarios' },
+  { id: 'overall' },
 ];
 
 const components = {
@@ -99,7 +103,7 @@ const stepProps = computed(() => {
   <div class="wizard">
     <!-- 侧栏进度追踪器 -->
     <aside class="sidebar">
-      <div class="sidebar-head small faint serif">创建进度</div>
+      <div class="sidebar-head small faint serif">{{ $t('wizard.progress') }}</div>
       <nav class="steps">
         <div
           v-for="(s, i) in steps"
@@ -109,7 +113,7 @@ const stepProps = computed(() => {
           @click="go(i)"
         >
           <span class="step-num">{{ i + 1 }}</span>
-          <span>{{ s.label }}</span>
+          <span>{{ labelOf(s.id) }}</span>
         </div>
       </nav>
     </aside>
@@ -118,9 +122,9 @@ const stepProps = computed(() => {
     <section class="content">
       <component :is="components[activeStep.id]" :key="activeStep.id" v-bind="stepProps" />
       <div class="nav-buttons">
-        <button class="btn" :disabled="current === 0" @click="prev">← 上一步</button>
+        <button class="btn" :disabled="current === 0" @click="prev">{{ $t('wizard.prev') }}</button>
         <div class="spacer"></div>
-        <button v-if="current < steps.length - 1" class="btn primary" @click="next">下一步 →</button>
+        <button v-if="current < steps.length - 1" class="btn primary" @click="next">{{ $t('wizard.next') }}</button>
       </div>
     </section>
   </div>

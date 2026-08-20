@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { character, saveCharacter, creditRatingValue, livingStandard, cashInfo, currency, creditRange, eraCredit } from '../../store.js';
 import { creditBracket, getEra } from '../../data/eras.js';
+import { t, dataName, flavorText } from '../../i18n.js';
 
 function addRow(list) { list.push({ name: '' }); saveCharacter(); }
 function removeRow(list, i) { list.splice(i, 1); saveCharacter(); }
@@ -12,9 +13,9 @@ const crVal = computed(() => creditRatingValue.value);
 const bracket = computed(() => creditBracket(creditDef.value, crVal.value));
 const eraLabel = computed(() => {
   if (character.era === '1920s') return '1920s';
-  if (character.era === 'modern') return '现代';
+  if (character.era === 'modern') return dataName('现代');
   const e = getEra(character.era);
-  return e ? e.label : character.era;
+  return e ? dataName(e.label) : character.era;
 });
 
 // 表内字段可能是函数（按信用评级动态计算）或静态文本
@@ -31,7 +32,7 @@ function fmtCash(v) {
 // 参考表单元格：真实值 +（公式），如 £300（CR×10）
 function tableCell(v, expr) {
   const val = fmtCash(v);
-  return expr ? `${val}（${expr}）` : val;
+  return expr ? `${val}（${flavorText(expr)}）` : val;
 }
 // 参考表首列：信用评级范围 / 地位值
 function rangeLabel(b) {
@@ -46,7 +47,7 @@ function rangeLabel(b) {
     <!-- 物品与装备 -->
     <div class="card">
       <div class="card-title">
-        <h2>物品与装备</h2><span class="sub">Possessions & Equipment</span>
+        <h2>{{ $t('items.title') }}</h2><span class="sub">{{ $t('items.sub') }}</span>
         <span class="spacer"></span>
         <button class="btn sm" @click="addRow(character.items)"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
@@ -54,7 +55,7 @@ function rangeLabel(b) {
         <table class="grid">
           <tbody>
             <tr v-for="(row, i) in character.items" :key="i">
-              <td><input v-model="row.name" @input="saveCharacter" placeholder="物品名称" /></td>
+              <td><input v-model="row.name" @input="saveCharacter" :placeholder="$t('items.ph')" /></td>
               <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.items, i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>
@@ -65,7 +66,7 @@ function rangeLabel(b) {
     <!-- 资产 -->
     <div class="card mt-16">
       <div class="card-title">
-        <h2>资产</h2><span class="sub">Cash & Assets</span>
+        <h2>{{ $t('items.assetsTitle') }}</h2><span class="sub">{{ $t('items.assetsSub') }}</span>
         <span class="spacer"></span>
         <button class="btn sm" @click="addRow(character.assetsRows)"><font-awesome-icon icon="fa-solid fa-plus" /></button>
       </div>
@@ -73,7 +74,7 @@ function rangeLabel(b) {
         <div class="grid-3 mb-16">
           <!-- 信用评级 / 地位（时代特殊定义） -->
           <div class="stat-card">
-            <div class="stat-label faint small">{{ creditDef ? creditDef.label : '信用评级' }}</div>
+            <div class="stat-label faint small">{{ creditDef ? $dn(creditDef.label) : $t('items.credit') }}</div>
             <div class="stat-val serif">{{ creditRatingValue }}</div>
             <div class="small dim">{{ eraLabel }}</div>
           </div>
@@ -82,25 +83,25 @@ function rangeLabel(b) {
           <template v-if="creditDef">
             <!-- 以物易物（不败 / 黑暗 / 冰岛）：无现金 -->
             <div v-if="creditDef.kind === 'barter' || creditDef.kind === 'status-table'" class="stat-card">
-              <div class="stat-label faint small">经济形态</div>
-              <div class="stat-val serif">以物易物</div>
-              <div class="small dim">{{ creditDef.currency }}</div>
+              <div class="stat-label faint small">{{ $t('items.econ') }}</div>
+              <div class="stat-val serif">{{ $t('items.barter') }}</div>
+              <div class="small dim">{{ $ft(creditDef.currency) }}</div>
             </div>
             <!-- 煤气灯：现金（收入）按英镑表，显示真实计算值 -->
             <div v-else-if="creditDef.kind === 'cash-table'" class="stat-card">
-              <div class="stat-label faint small">现金（英镑）</div>
+              <div class="stat-label faint small">{{ $t('items.cashPound') }}</div>
               <div class="stat-val serif gold">{{ fmtCash(bracket && bracket.cash) }}</div>
-              <div class="small dim">{{ bracket ? bracket.name + (bracket.cashExpr ? ' · ' + bracket.cashExpr : '') : '' }}</div>
+              <div class="small dim">{{ bracket ? $dn(bracket.name) + (bracket.cashExpr ? ' · ' + bracket.cashExpr : '') : '' }}</div>
             </div>
             <!-- 末日：交换资产 -->
             <div v-else class="stat-card">
-              <div class="stat-label faint small">交换资产（以物易物）</div>
+              <div class="stat-label faint small">{{ $t('items.barterAssets') }}</div>
               <div class="stat-val serif">{{ bracket ? bracket.name : '' }}</div>
             </div>
           </template>
           <!-- 标准时代：现金 -->
           <div v-else class="stat-card">
-            <div class="stat-label faint small">现金（{{ currency.name }}）</div>
+            <div class="stat-label faint small">{{ $t('items.cash', { cur: $dn(currency.name) }) }}</div>
             <div class="stat-val serif gold">{{ currency.symbol }} {{ cashInfo.amount }}</div>
           </div>
 
@@ -108,69 +109,69 @@ function rangeLabel(b) {
           <template v-if="creditDef">
             <!-- 不败 / 黑暗：无消费水平 -->
             <div v-if="creditDef.kind === 'barter'" class="stat-card">
-              <div class="stat-label faint small">消费水平</div>
-              <div class="stat-val serif" style="font-size:1.1rem">无（物物交换）</div>
-              <div class="small dim">{{ creditDef.label }}决定人脉与门路，不用于购买。</div>
+              <div class="stat-label faint small">{{ $t('items.spending') }}</div>
+              <div class="stat-val serif" style="font-size:1.1rem">{{ $t('items.noSpending') }}</div>
+              <div class="small dim">{{ $t('items.spendingNote', { label: $dn(creditDef.label) }) }}</div>
             </div>
             <!-- 冰岛：社会地位表 -->
             <div v-else-if="creditDef.kind === 'status-table'" class="stat-card">
-              <div class="stat-label faint small">社会地位</div>
+              <div class="stat-label faint small">{{ $t('items.status') }}</div>
               <div class="stat-val serif" style="font-size:1.2rem">{{ bracket ? bracket.label : '' }}</div>
-              <div class="small dim">地位值 {{ crVal }}</div>
+              <div class="small dim">{{ $t('items.statusVal', { v: crVal }) }}</div>
             </div>
             <!-- 煤气灯：消费水平（每天） -->
             <div v-else-if="creditDef.kind === 'cash-table'" class="stat-card">
-              <div class="stat-label faint small">消费水平（每天）</div>
+              <div class="stat-label faint small">{{ $t('items.spendingDay') }}</div>
               <div class="stat-val serif">{{ fmtVal(bracket && bracket.spending) }}</div>
               <div class="small dim">{{ bracket ? bracket.name : '' }}</div>
             </div>
             <!-- 末日：信用评级含义 -->
             <div v-else class="stat-card">
-              <div class="stat-label faint small">含义</div>
-              <div class="stat-val serif" style="font-size:1rem">有价值的物品</div>
-              <div class="small dim">信用评级 = 抽象资产</div>
+              <div class="stat-label faint small">{{ $t('items.meaning') }}</div>
+              <div class="stat-val serif" style="font-size:1rem">{{ $t('items.valuableItems') }}</div>
+              <div class="small dim">{{ $t('items.creditAbstract') }}</div>
             </div>
           </template>
           <!-- 标准时代：消费水平 -->
           <div v-else class="stat-card">
-            <div class="stat-label faint small">消费水平</div>
-            <div class="stat-val serif">{{ livingStandard.name }}</div>
-            <div class="small dim">{{ livingStandard.desc }}</div>
+            <div class="stat-label faint small">{{ $t('items.spending') }}</div>
+            <div class="stat-val serif">{{ $dn(livingStandard.name) }}</div>
+            <div class="small dim">{{ $ft(livingStandard.desc) }}</div>
           </div>
         </div>
 
         <!-- 时代信用评级特殊定义：说明 + 参考表 -->
         <div v-if="creditDef" class="era-credit-box">
-          <p class="era-credit-note">{{ creditDef.note }}</p>
+          <p class="era-credit-note">{{ $ft(creditDef.note) }}</p>
           <table v-if="creditDef.table" class="era-credit-table">
             <thead>
               <tr>
-                <th>{{ creditDef.kind === 'status-table' ? '地位值' : '信用评级' }}</th>
-                <th v-if="creditDef.kind === 'cash-table'">现金（收入）</th>
-                <th v-if="creditDef.kind === 'cash-table'">资产</th>
-                <th v-if="creditDef.kind === 'cash-table'">消费水平</th>
-                <th v-if="creditDef.kind === 'barter-assets'">交换资产</th>
-                <th v-if="creditDef.kind === 'status-table'">社会地位</th>
+                <th>{{ creditDef.kind === 'status-table' ? $t('items.thStatusVal') : $t('items.thCredit') }}</th>
+                <th v-if="creditDef.kind === 'cash-table'">{{ $t('items.thCash') }}</th>
+                <th v-if="creditDef.kind === 'cash-table'">{{ $t('items.thAssets') }}</th>
+                <th v-if="creditDef.kind === 'cash-table'">{{ $t('items.thSpending') }}</th>
+                <th v-if="creditDef.kind === 'barter-assets'">{{ $t('items.thBarterAssets') }}</th>
+                <th v-if="creditDef.kind === 'status-table'">{{ $t('items.thStatus') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(b, i) in creditDef.table" :key="i" :class="{ cur: bracket === b }">
-                <td>{{ creditDef.kind === 'status-table' ? rangeLabel(b) : b.name }}</td>
+                <td>{{ creditDef.kind === 'status-table' ? rangeLabel(b) : $dn(b.name) }}</td>
                 <td v-if="creditDef.kind === 'cash-table'">{{ tableCell(b.cash, b.cashExpr) }}</td>
                 <td v-if="creditDef.kind === 'cash-table'">{{ tableCell(b.assets, b.assetsExpr) }}</td>
                 <td v-if="creditDef.kind === 'cash-table'">{{ b.spending }}</td>
-                <td v-if="creditDef.kind === 'barter-assets'">{{ b.assets }}</td>
-                <td v-if="creditDef.kind === 'status-table'">{{ b.label }}</td>
+                <td v-if="creditDef.kind === 'barter-assets'">{{ $ft(b.assets) }}</td>
+                <td v-if="creditDef.kind === 'status-table'">{{ $dn(b.label) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <table class="grid">
-          <thead><tr><th>资产</th><th></th></tr></thead>
+          <thead><tr><th>{{ $t('items.assets') }}</th><th></th></tr></thead>
           <tbody>
             <tr v-for="(row, i) in character.assetsRows" :key="i">
-              <td><input v-model="row.name" @input="saveCharacter" placeholder="资产名称（如房产、车辆）" /></td>
+              <td><input v-model="row.name" @input="saveCharacter" :placeholder="$t('items.assetsPh')" /></td>
               <td style="width:60px"><button class="btn sm ghost danger" @click="removeRow(character.assetsRows, i)"><font-awesome-icon icon="fa-solid fa-trash" /></button></td>
             </tr>
           </tbody>

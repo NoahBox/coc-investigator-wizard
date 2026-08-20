@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { character, saveCharacter, currentPackage } from '../../store.js';
 import { weapons, weaponGroups, weaponGroupOrder, weaponGroupEra, getWeapon } from '../../data/weapons.js';
+import { t } from '../../i18n.js';
 
 const selected = ref('');
 const search = ref('');
@@ -33,7 +34,7 @@ function addWeapon(name) {
   saveCharacter();
 }
 function addCustomWeapon() {
-  character.weapons.push({ name: '自定义武器', skill: '', dam: '', range: '', round: '', num: '', err: '', price: '', time: '', tho: '', custom: true });
+    character.weapons.push({ name: t('weapon.customName'), skill: '', dam: '', range: '', round: '', num: '', err: '', price: '', time: '', tho: '', custom: true });
   customName.value = '';
   saveCharacter();
 }
@@ -49,63 +50,63 @@ const autoWeapons = computed(() => currentPackage.value?.autoWeapons || []);
 <template>
   <div class="step fade-in">
     <div class="card">
-      <div class="card-title"><h2>武器</h2><span class="sub">Weapons</span></div>
+      <div class="card-title"><h2>{{ $t('weapon.title') }}</h2><span class="sub">{{ $t('weapon.sub') }}</span></div>
       <div class="card-body">
         <div class="row wrap mb-16">
-          <input class="inp" style="max-width:220px" v-model="search" placeholder="筛选武器名称" />
+          <input class="inp" style="max-width:220px" v-model="search" :placeholder="$t('weapon.searchPh')" />
           <select class="inp grow" v-model="selected">
-            <option value="" disabled>选择武器</option>
+            <option value="" disabled>{{ $t('weapon.select') }}</option>
             <optgroup v-for="[g, names] in filteredGroups" :key="g" :label="g">
               <option v-for="n in names" :key="n" :value="n">{{ n }}</option>
             </optgroup>
           </select>
-          <button class="btn primary" :disabled="!selected" @click="addWeapon(selected); selected=''"><font-awesome-icon icon="fa-solid fa-plus" />添加</button>
-          <button class="btn" @click="addCustomWeapon"><font-awesome-icon icon="fa-solid fa-plus" />自定义</button>
+          <button class="btn primary" :disabled="!selected" @click="addWeapon(selected); selected=''"><font-awesome-icon icon="fa-solid fa-plus" />{{ $t('weapon.add') }}</button>
+          <button class="btn" @click="addCustomWeapon"><font-awesome-icon icon="fa-solid fa-plus" />{{ $t('weapon.custom') }}</button>
         </div>
 
         <table class="grid" v-if="character.weapons.length">
           <thead>
-            <tr><th>武器</th><th>技能</th><th>伤害</th><th>射程</th><th>贯穿</th><th>次数</th><th>弹药</th><th>故障</th><th></th></tr>
+            <tr><th>{{ $t('weapon.name') }}</th><th>{{ $t('weapon.skill') }}</th><th>{{ $t('weapon.dam') }}</th><th>{{ $t('weapon.range') }}</th><th>{{ $t('weapon.tho') }}</th><th>{{ $t('weapon.round') }}</th><th>{{ $t('weapon.ammo') }}</th><th>{{ $t('weapon.err') }}</th><th></th></tr>
           </thead>
           <tbody>
             <tr v-for="(w, i) in character.weapons" :key="i">
               <td>
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.name" @input="saveCharacter" placeholder="武器名" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.name" @input="saveCharacter" :placeholder="$t('weapon.phName')" />
                 <template v-else>{{ w.name }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.skill" @input="saveCharacter" placeholder="使用技能" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.skill" @input="saveCharacter" :placeholder="$t('weapon.phSkill')" />
                 <template v-else>{{ w.skill }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.dam" @input="saveCharacter" placeholder="伤害" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.dam" @input="saveCharacter" :placeholder="$t('weapon.phDam')" />
                 <template v-else>{{ w.dam }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.range" @input="saveCharacter" placeholder="射程" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.range" @input="saveCharacter" :placeholder="$t('weapon.phRange')" />
                 <template v-else>{{ w.range }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.tho" @input="saveCharacter" placeholder="贯穿" />
-                <template v-else>{{ w.tho ? '是' : 0 }}</template>
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.tho" @input="saveCharacter" :placeholder="$t('weapon.phTho')" />
+                <template v-else>{{ w.tho ? $t('weapon.yes') : 0 }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.round" @input="saveCharacter" placeholder="次数" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.round" @input="saveCharacter" :placeholder="$t('weapon.phRound')" />
                 <template v-else>{{ w.round }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.num" @input="saveCharacter" placeholder="弹药" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.num" @input="saveCharacter" :placeholder="$t('weapon.phAmmo')" />
                 <template v-else>{{ w.num }}</template>
               </td>
               <td class="small">
-                <input v-if="w.custom" class="inp wep-inp" v-model="w.err" @input="saveCharacter" placeholder="故障" />
+                <input v-if="w.custom" class="inp wep-inp" v-model="w.err" @input="saveCharacter" :placeholder="$t('weapon.phErr')" />
                 <template v-else>{{ w.err }}</template>
               </td>
               <td><button class="btn sm ghost danger" @click="removeWeapon(i)">⨉</button></td>
             </tr>
           </tbody>
         </table>
-        <div v-else class="empty">尚未添加武器</div>
+        <div v-else class="empty">{{ $t('weapon.empty') }}</div>
       </div>
     </div>
   </div>

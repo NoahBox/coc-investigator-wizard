@@ -3,10 +3,11 @@ import { ref, computed } from 'vue';
 import { character, saveCharacter, attributesComplete } from '../../store.js';
 import { ATTR_KEYS, ATTR_LABELS, ATTR_EN, generateRandomAttributes, QUICK_START_VALUES, POINT_BUY_DEFAULT, ATTR_MIN, ATTR_MAX } from '../../data/rules.js';
 
+import { t } from '../../i18n.js';
 const methods = [
-  { v: 'pointbuy', label: '购点' },
-  { v: 'random', label: '随机生成' },
-  { v: 'quickstart', label: '快速开始' },
+  { v: 'pointbuy', label: () => t('attrs.pointbuy') },
+  { v: 'random', label: () => t('attrs.random') },
+  { v: 'quickstart', label: () => t('attrs.quickstart') },
 ];
 
 // 待分配池（随机/快速开始模式，持久化在 character.attrPool）
@@ -142,24 +143,24 @@ function attrAdjustment(k) { return 0; }
 <template>
   <div class="step fade-in">
     <div class="card">
-      <div class="card-title"><h2>属性分配</h2><span class="sub">Characteristics</span></div>
+      <div class="card-title"><h2>{{ $t('attrs.title') }}</h2><span class="sub">{{ $t('attrs.sub') }}</span></div>
       <div class="card-body">
-        <label class="lbl">分配方式</label>
+        <label class="lbl">{{ $t('attrs.method') }}</label>
         <div class="seg mb-16">
-          <span v-for="m in methods" :key="m.v" class="seg-item" :class="{ active: character.attrMethod === m.v }" @click="setMethod(m.v)">{{ m.label }}</span>
+          <span v-for="m in methods" :key="m.v" class="seg-item" :class="{ active: character.attrMethod === m.v }" @click="setMethod(m.v)">{{ m.label() }}</span>
         </div>
 
         <!-- 购点 -->
         <template v-if="character.attrMethod === 'pointbuy'">
           <div class="row mb-16">
-            <label class="lbl grow" style="margin:0">点数池</label>
+            <label class="lbl grow" style="margin:0">{{ $t('attrs.pointPool') }}</label>
             <input class="inp" style="width:100px" type="number" v-model.number="character.pointTotal" @input="saveCharacter" />
-            <span v-if="freeMode" class="small accent">老卡模式</span>
-            <span v-else class="small dim">剩余 <b class="accent">{{ pointBuyRemaining }}</b></span>
+            <span v-if="freeMode" class="small accent">{{ $t('attrs.legacy') }}</span>
+            <span v-else class="small dim">{{ $t('attrs.remaining', { n: pointBuyRemaining }) }}</span>
           </div>
           <div class="attr-grid">
             <div v-for="k in ATTR_KEYS" :key="k" class="attr-pb card pad">
-              <div class="attr-name serif">{{ ATTR_LABELS[k] }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
+              <div class="attr-name serif">{{ $dn(ATTR_LABELS[k]) }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
               <div class="row mt-8">
                 <button class="btn sm" @click="adjustAttr(k, -5)">−5</button>
                 <input class="attr-inp" type="number" :value="character.attributes[k] ?? ''" placeholder="—" @input="setAttrValue(k, $event.target.value)" />
@@ -172,15 +173,15 @@ function attrAdjustment(k) { return 0; }
         <!-- 随机 / 快速开始 -->
         <template v-else>
           <div class="row mb-16">
-            <button v-if="character.attrMethod === 'random'" class="btn primary" @click="initRandom()">随机生成属性</button>
-            <span class="hint">将待分配栏中的数值卡片拖拽（或点击选中后点击属性）到右侧属性框。</span>
+            <button v-if="character.attrMethod === 'random'" class="btn primary" @click="initRandom()">{{ $t('attrs.randomize') }}</button>
+            <span class="hint">{{ $t('attrs.hint') }}</span>
           </div>
 
           <div class="drag-layout">
             <!-- 待分配栏 -->
             <div class="pool card pad" :class="{ 'drop-target': true }" @dragover.prevent @drop="onDropPool">
-              <div class="lbl">待分配栏 <span class="faint">（拖回此处取消分配）</span></div>
-              <div v-if="character.attrPool.length === 0" class="empty">空</div>
+              <div class="lbl">{{ $t('attrs.pool') }} <span class="faint">{{ $t('attrs.poolHint') }}</span></div>
+              <div v-if="character.attrPool.length === 0" class="empty">{{ $t('attrs.empty') }}</div>
               <div class="pool-cards">
                 <div
                   v-for="(v, i) in character.attrPool"
@@ -206,14 +207,14 @@ function attrAdjustment(k) { return 0; }
                 @drop="onDropAttr(k)"
                 @click="clickAttr(k)"
               >
-                <div class="attr-name serif">{{ ATTR_LABELS[k] }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
+                <div class="attr-name serif">{{ $dn(ATTR_LABELS[k]) }} <span class="faint">{{ ATTR_EN[k] }}</span></div>
                 <div class="slot-val" :class="{ dragging: drag && drag.source === k }"
                   :draggable="character.attributes[k] != null"
                   @dragstart="onDragStartSlot(k)"
                   @dragend="onDragEnd"
                 >
                   <span v-if="character.attributes[k] != null">{{ character.attributes[k] }}</span>
-                  <span v-else class="faint">放置</span>
+                  <span v-else class="faint">{{ $t('attrs.drop') }}</span>
                   <span v-if="character.attributes[k] != null && attrAdjustment(k)" class="adj">({{ attrAdjustment(k) >= 0 ? '+' : '' }}{{ attrAdjustment(k) }})</span>
                 </div>
               </div>

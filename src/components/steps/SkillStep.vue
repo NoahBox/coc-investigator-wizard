@@ -7,6 +7,7 @@ import {
   jobGroupHints, creditRange,
 } from '../../store.js';
 import { skills, skillGroups, skillGroupOrder, getSkill, getEraSkill, groupedSkillNames, getEraSkillGroups, getEraGroupOrder } from '../../data/skills.js';
+import { t, dataName, skillLabel, skillIntroByKey } from '../../i18n.js';
 
 const props = defineProps({ mode: { type: String, default: 'pro' } });
 const isPro = computed(() => props.mode === 'pro');
@@ -53,8 +54,8 @@ function childSuggestions(groupName) {
 }
 // 子技能输入框占位文字
 function childPlaceholder(groupName) {
-  if (groupName === '自定义') return '自定义技能名';
-  return groupName + '具体类别';
+  if (groupName === '自定义') return t('skill.customChildPh');
+  return groupName + t('skill.childPh');
 }
 
 function getChildren(groupName) {
@@ -118,11 +119,11 @@ function allocatable(key) {
 }
 
 // 展示技能名
-function showName(name) { return name.replace(/Ω/g, ''); }
+function showName(name) { return dataName(name.replace(/Ω/g, '')); }
 
 // 技能说明（悬浮提示）：先查标准技能，再查当前可用的时代技能
 function skillIntro(name) {
-  return getSkill(name)?.intro || getEraSkill(name)?.intro || '';
+  return skillIntroByKey(name) || getSkill(name)?.intro || getEraSkill(name)?.intro || '';
 }
 
 // ---- 自定义职业：选择本职技能 ----
@@ -148,35 +149,34 @@ function toggleCustomSkill(key) {
   <div class="step fade-in">
     <div class="card">
       <div class="card-title">
-        <h2>{{ isPro ? '职业技能分配' : '业余技能分配' }}</h2>
-        <span class="sub">{{ isPro ? 'Occupation Skills' : 'Personal Interest Skills' }}</span>
+        <h2>{{ isPro ? $t('skill.titlePro') : $t('skill.titleInterest') }}</h2>
+        <span class="sub">{{ isPro ? $t('skill.subPro') : $t('skill.subInterest') }}</span>
         <span class="spacer"></span>
-        <span v-if="freeMode" class="small accent">老卡模式</span>
-        <span v-else class="small">剩余点数 <b class="accent">{{ remaining }}</b> / {{ totalPoints }}</span>
+        <span v-if="freeMode" class="small accent">{{ $t('skill.legacy') }}</span>
+        <span v-else class="small">{{ $t('skill.remaining', { n: remaining }) }} / {{ totalPoints }}</span>
       </div>
       <div class="card-body">
         <!-- 分配模式（仅职业） -->
         <template v-if="isPro && !isIcelandFree">
-          <label class="lbl">分配模式</label>
+          <label class="lbl">{{ $t('skill.mode') }}</label>
           <div class="seg mb-16">
-            <span class="seg-item" :class="{ active: character.skillMode === 'strict' }" @click="character.skillMode = 'strict'; saveCharacter()">严格模式</span>
-            <span class="seg-item" :class="{ active: character.skillMode === 'pulp' }" @click="character.skillMode = 'pulp'; saveCharacter()">通俗模式</span>
+            <span class="seg-item" :class="{ active: character.skillMode === 'strict' }" @click="character.skillMode = 'strict'; saveCharacter()">{{ $t('skill.strict') }}</span>
+            <span class="seg-item" :class="{ active: character.skillMode === 'pulp' }" @click="character.skillMode = 'pulp'; saveCharacter()">{{ $t('skill.pulp') }}</span>
           </div>
           <p class="hint mb-16">
-            严格模式：职业技能与信用评级仅可分配职业技能点，业余技能仅可分配业余技能点。<br />
-            通俗模式：职业技能既可分配职业技能点，也可分配业余技能点。
+            {{ $t('skill.modeHint') }}
           </p>
         </template>
 
         <!-- 自定义职业：选择本职技能 -->
         <div v-if="customPickerOpen" class="custom-picker card mt-8">
           <div class="card-body">
-            <h3 class="mb-8">选择本职技能（默认已含信用评级，不可选择克苏鲁神话）</h3>
+            <h3 class="mb-8">{{ $t('skill.customPicker') }}</h3>
             <div class="row wrap mb-8">
-              <span class="small dim">已选 {{ character.customSkills.length }} / 8</span>
+              <span class="small dim">{{ $t('skill.selectedN', { n: character.customSkills.length }) }}</span>
             </div>
             <div class="tabs">
-              <span v-for="g in groupOrder" :key="g" class="tab" :class="{ active: pickerTab === g }" @click="pickerTab = g">{{ g }}</span>
+              <span v-for="g in groupOrder" :key="g" class="tab" :class="{ active: pickerTab === g }" @click="pickerTab = g">{{ $dn(g) }}</span>
             </div>
             <div class="picker-list">
               <template v-for="name in groups[pickerTab]" :key="name">
@@ -189,7 +189,7 @@ function toggleCustomSkill(key) {
                   />
                   <span class="box">✓</span>
                   <span :class="{ faint: name === '克苏鲁神话' }" :title="skillIntro(name)">{{ showName(name) }}</span>
-                  <span v-if="name === '克苏鲁神话'" class="small faint">（不可选）</span>
+                  <span v-if="name === '克苏鲁神话'" class="small faint">{{ $t('skill.noSelect') }}</span>
                 </label>
               </template>
             </div>
@@ -199,11 +199,11 @@ function toggleCustomSkill(key) {
         <!-- 职业技能：本职技能 + 信用评级列表（神秘冰岛无职业模板，走下方自由分配界面） -->
         <div v-if="isPro && !isIcelandFree">
           <div class="skill-row header small dim" :class="{ growth: showGrowth }">
-            <span class="s-name">技能</span><span class="s-base">基础</span><span v-if="showGrowth" class="s-growth">成长</span><span class="s-alloc">分配</span><span class="s-total">总值</span>
+            <span class="s-name">{{ $t('skill.name') }}</span><span class="s-base">{{ $t('skill.base') }}</span><span v-if="showGrowth" class="s-growth">{{ $t('skill.growth') }}</span><span class="s-alloc">{{ $t('skill.alloc') }}</span><span class="s-total">{{ $t('skill.total') }}</span>
           </div>
           <!-- 信用评级 -->
           <div class="skill-row" :class="{ growth: showGrowth }">
-            <span class="s-name" :title="skillIntro('信用评级')">信用评级</span>
+            <span class="s-name" :title="skillIntro('信用评级')">{{ $dn('信用评级') }}</span>
             <span class="s-base faint">—</span>
             <span v-if="showGrowth" class="s-growth faint">{{ growthOf('信用评级') || '—' }}</span>
             <span class="s-alloc">
@@ -232,12 +232,12 @@ function toggleCustomSkill(key) {
 
         <!-- 业余技能 / 神秘冰岛职业技能自由分配：分类标签页 -->
         <div v-else-if="!isPro || isIcelandFree">
-          <p v-if="icelandNoInterest" class="warn-text mb-8">神秘冰岛：业余技能点不可用（0 点）——全部点数已并入「职业技能」步骤的自由分配（教育×4+智力×2）。</p>
+          <p v-if="icelandNoInterest" class="warn-text mb-8">{{ $t('skill.icelandNoInterest') }}</p>
           <div class="tabs">
-            <span v-for="g in groupOrder" :key="g" class="tab" :class="{ active: interestTab === g }" @click="interestTab = g">{{ g }}</span>
+            <span v-for="g in groupOrder" :key="g" class="tab" :class="{ active: interestTab === g }" @click="interestTab = g">{{ $dn(g) }}</span>
           </div>
           <div class="skill-row header small dim mt-8" :class="{ pulp: isPulp, growth: showGrowth }">
-            <span class="s-name">技能</span><span class="s-base">基础</span><span v-if="isPulp" class="s-pro">职业点</span><span v-if="showGrowth" class="s-growth">成长</span><span class="s-alloc">分配</span><span class="s-total">总值</span>
+            <span class="s-name">{{ $t('skill.name') }}</span><span class="s-base">{{ $t('skill.base') }}</span><span v-if="isPulp" class="s-pro">{{ $t('skill.pro') }}</span><span v-if="showGrowth" class="s-growth">{{ $t('skill.growth') }}</span><span class="s-alloc">{{ $t('skill.alloc') }}</span><span class="s-total">{{ $t('skill.total') }}</span>
           </div>
           <template v-for="name in groups[interestTab]" :key="name">
             <!-- 普通技能 -->
@@ -252,7 +252,7 @@ function toggleCustomSkill(key) {
                   <input class="mini" type="number" :value="valOf(name)" @input="setVal(name, $event.target.value)" />
                   <button class="btn sm" @click="bump(name, 5)">+</button>
                 </template>
-                <span v-else class="small faint">不可分配</span>
+                <span v-else class="small faint">{{ $t('skill.notAllocatable') }}</span>
               </span>
               <span class="s-total">{{ skillValue(name) }}</span>
             </div>
@@ -260,16 +260,16 @@ function toggleCustomSkill(key) {
             <div v-else class="group-block">
               <div class="group-head">
                 <span class="serif" :title="skillIntro(name)">{{ showName(name) }}</span>
-                <span class="faint small">基础 {{ skillBaseOf(name) }}</span>
-                <button class="btn sm ghost" @click="addChild(name)">+ 添加类别</button>
+                <span class="faint small">{{ $t('skill.base') }} {{ skillBaseOf(name) }}</span>
+                <button class="btn sm ghost" @click="addChild(name)">{{ $t('skill.addCategory') }}</button>
               </div>
               <div v-for="(child, ci) in getChildren(name)" :key="ci" class="skill-row group-child" :class="{ pulp: isPulp, growth: showGrowth }">
                 <span class="s-name">
                   <input class="inp child-inp" :list="'ch-' + name" :value="child" :placeholder="childPlaceholder(name)" @input="setChildName(name, ci, $event.target.value)" />
                   <datalist :id="'ch-' + name">
-                    <option v-for="s in childSuggestions(name)" :key="s" :value="s"></option>
+                    <option v-for="s in childSuggestions(name)" :key="s" :value="s">{{ $dn(s) }}</option>
                   </datalist>
-                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(name, ci)" title="删除该类别">
+                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(name, ci)" :title="$t('skill.removeCategory')">
                     <font-awesome-icon icon="fa-solid fa-trash" />
                   </button>
                 </span>
@@ -282,7 +282,7 @@ function toggleCustomSkill(key) {
                     <input class="mini" type="number" :value="valOf(makeSkillKey(name, child))" @input="setVal(makeSkillKey(name, child), $event.target.value)" />
                     <button class="btn sm" @click="bump(makeSkillKey(name, child), 5)">+</button>
                   </template>
-                  <span v-else class="small faint">不可分配</span>
+                  <span v-else class="small faint">{{ $t('skill.notAllocatable') }}</span>
                 </span>
                 <span class="s-total">{{ skillValue(makeSkillKey(name, child)) }}</span>
               </div>
@@ -296,17 +296,17 @@ function toggleCustomSkill(key) {
             <div class="group-block">
               <div class="group-head">
                 <span class="serif" :title="skillIntro(groupName)">{{ showName(groupName) }}</span>
-                <span class="faint small">基础 {{ skillBaseOf(groupName) }}</span>
-                <span v-if="jobGroupHints[groupName]" class="hint-chip">推荐：{{ jobGroupHints[groupName] }}</span>
-                <button class="btn sm ghost" @click="addChild(groupName)">+ 添加类别</button>
+                <span class="faint small">{{ $t('skill.base') }} {{ skillBaseOf(groupName) }}</span>
+                <span v-if="jobGroupHints[groupName]" class="hint-chip">{{ $t('skill.recommend', { h: $dn(jobGroupHints[groupName]) }) }}</span>
+                <button class="btn sm ghost" @click="addChild(groupName)">{{ $t('skill.addCategory') }}</button>
               </div>
               <div v-for="(child, ci) in getChildren(groupName)" :key="ci" class="skill-row group-child" :class="{ growth: showGrowth }">
                 <span class="s-name">
-                  <input class="inp child-inp" :list="'chp-' + groupName" :value="child" :placeholder="jobGroupHints[groupName] && ci === 0 ? '推荐：' + jobGroupHints[groupName] : groupName + '具体类别'" @input="setChildName(groupName, ci, $event.target.value)" />
+                  <input class="inp child-inp" :list="'chp-' + groupName" :value="child" :placeholder="jobGroupHints[groupName] && ci === 0 ? $t('skill.recommendPh', { h: $dn(jobGroupHints[groupName]) }) : groupName + $t('skill.childPh')" @input="setChildName(groupName, ci, $event.target.value)" />
                   <datalist :id="'chp-' + groupName">
-                    <option v-for="s in childSuggestions(groupName)" :key="s" :value="s"></option>
+                    <option v-for="s in childSuggestions(groupName)" :key="s" :value="s">{{ $dn(s) }}</option>
                   </datalist>
-                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(groupName, ci)" title="删除该类别">
+                  <button v-if="ci > 0" class="btn sm ghost rem" @click="removeChild(groupName, ci)" :title="$t('skill.removeCategory')">
                     <font-awesome-icon icon="fa-solid fa-trash" />
                   </button>
                 </span>

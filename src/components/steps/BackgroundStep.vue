@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 import { character, saveCharacter, currentPackage, eraInfo } from '../../store.js';
+import { t, dataName, flavorText, storyText } from '../../i18n.js';
+import { eraDiceTables } from '../../data/eras.js';
 import {
   APPEARANCE_DESCRIPTIONS,
   BELIEFS,
@@ -14,18 +16,31 @@ import {
 
 // 标记 random:true 的字段可在标签旁显示掷骰按钮，随机抽取文本填入
 const fields = [
-  { key: 'app', label: '形象描述', ph: '调查员的外貌特征…', random: true },
-  { key: 'belief', label: '思想与信念', ph: '信仰、理念、政治立场…', random: true },
-  { key: 'importantPerson', label: '重要之人', ph: '对你重要的人及其原因…', random: true },
-  { key: 'place', label: '意义非凡之地', ph: '对你意义非凡的地方…', random: true },
-  { key: 'item', label: '宝贵之物', ph: '你最珍视的东西…', random: true },
-  { key: 'trait', label: '特质', ph: '性格特质…', random: true },
-  { key: 'scar', label: '伤口与疤痕', ph: '身体上的伤口与疤痕…' },
-  { key: 'mad', label: '精神症状', ph: '恐惧症、躁狂症等…' },
-  { key: 'desc', label: '个人介绍', ph: '调查员的完整背景故事…' },
+  { key: 'app', label: () => t('bg.fields.app'), ph: () => t('bg.phs.app'), random: true },
+  { key: 'belief', label: () => t('bg.fields.belief'), ph: () => t('bg.phs.belief'), random: true },
+  { key: 'importantPerson', label: () => t('bg.fields.importantPerson'), ph: () => t('bg.phs.importantPerson'), random: true },
+  { key: 'place', label: () => t('bg.fields.place'), ph: () => t('bg.phs.place'), random: true },
+  { key: 'item', label: () => t('bg.fields.item'), ph: () => t('bg.phs.item'), random: true },
+  { key: 'trait', label: () => t('bg.fields.trait'), ph: () => t('bg.phs.trait'), random: true },
+  { key: 'scar', label: () => t('bg.fields.scar'), ph: () => t('bg.phs.scar') },
+  { key: 'mad', label: () => t('bg.fields.mad'), ph: () => t('bg.phs.mad') },
+  { key: 'desc', label: () => t('bg.fields.desc'), ph: () => t('bg.phs.desc') },
 ];
 
 const required = computed(() => currentPackage.value?.requiredBackgrounds || []);
+
+// 时代信息（派系 / 掷骰表结果）：本地化重建（store 的 eraInfo 为中文摘要）
+const eraInfoLocal = computed(() => {
+  const parts = [];
+  const table = eraDiceTables[character.era];
+  const roll = character.eraEffects?.[character.era];
+  if (table && roll && roll.dice) {
+    const entry = table.entries[roll.dice - 1];
+    if (entry) parts.push(`${dataName(table.title)}（1D10=${roll.dice}）：${dataName(entry.text)}（${flavorText(entry.note)}）`);
+  }
+  if (character.eraFaction) parts.push(`${t('bg.eraInfo')}：${dataName(character.eraFaction)}`);
+  return parts;
+});
 
 // 当前时代专属背景表（仅 不败/黑暗/冰岛 在书中有专属表，其余沿用标准表）
 // 点击字段旁的骰子按钮时，从当前时代对应的随机表中抽取
@@ -40,14 +55,14 @@ function pick(arr) {
 function randomText(key) {
   const bg = eraBg.value;
   switch (key) {
-    case 'app': return pick(APPEARANCE_DESCRIPTIONS);
-    case 'belief': return bg.belief ? pick(bg.belief) : pick(BELIEFS);
+    case 'app': return storyText(pick(APPEARANCE_DESCRIPTIONS));
+    case 'belief': return storyText(bg.belief ? pick(bg.belief) : pick(BELIEFS));
     case 'importantPerson':
-      if (bg.importantPerson) return pick(bg.importantPerson);
-      return `${pick(IMPORTANT_PERSON_TYPES)}\n${pick(IMPORTANT_PERSON_REASONS)}`;
-    case 'place': return bg.place ? pick(bg.place) : pick(MEANINGFUL_PLACES);
-    case 'item': return bg.item ? pick(bg.item) : pick(PRECIOUS_ITEMS);
-    case 'trait': return pick(TRAITS);
+      if (bg.importantPerson) return storyText(pick(bg.importantPerson));
+      return `${storyText(pick(IMPORTANT_PERSON_TYPES))}\n${storyText(pick(IMPORTANT_PERSON_REASONS))}`;
+    case 'place': return storyText(bg.place ? pick(bg.place) : pick(MEANINGFUL_PLACES));
+    case 'item': return storyText(bg.item ? pick(bg.item) : pick(PRECIOUS_ITEMS));
+    case 'trait': return storyText(pick(TRAITS));
     default: return '';
   }
 }
@@ -62,28 +77,28 @@ function fillRandom(f) {
 <template>
   <div class="step fade-in">
     <div class="card">
-      <div class="card-title"><h2>背景故事</h2><span class="sub">Backstory</span></div>
+      <div class="card-title"><h2>{{ $t('bg.title') }}</h2><span class="sub">{{ $t('bg.sub') }}</span></div>
       <div class="card-body">
         <!-- 时代信息（派系 / 随机表结果）：只读展示，不可在此修改 -->
-        <div v-if="eraInfo.length" class="era-info-box">
-          <span class="era-info-label">时代信息</span>
-          <p v-for="(t, i) in eraInfo" :key="i">{{ t }}</p>
+        <div v-if="eraInfoLocal.length" class="era-info-box">
+          <span class="era-info-label">{{ $t('bg.eraInfo') }}</span>
+          <p v-for="(t, i) in eraInfoLocal" :key="i">{{ t }}</p>
         </div>
 
         <div class="grid-2">
           <div v-for="f in fields" :key="f.key" :class="{ 'span-2': f.key === 'desc' }">
             <label class="lbl">
-              <b>{{ f.label }}</b>
-              <button v-if="f.random" class="rand-btn" type="button" :title="`随机生成${f.label}`" @click="fillRandom(f)">
+              <b>{{ f.label() }}</b>
+              <button v-if="f.random" class="rand-btn" type="button" :title="t('bg.randomTitle', { label: f.label() })" @click="fillRandom(f)">
                 <font-awesome-icon icon="fa-solid fa-dice" />
               </button>
             </label>
-            <textarea class="inp" v-model="character.background[f.key]" @input="saveCharacter" :placeholder="f.ph" :style="f.key === 'desc' ? 'min-height:120px' : ''"></textarea>
+            <textarea class="inp" v-model="character.background[f.key]" @input="saveCharacter" :placeholder="f.ph()" :style="f.key === 'desc' ? 'min-height:120px' : ''"></textarea>
           </div>
         </div>
 
         <div v-if="required.length" class="req-box mt-16">
-          <p class="warn-text">经验包要求补充以下背景项：</p>
+          <p class="warn-text">{{ $t('bg.requiredTitle') }}</p>
           <ul class="req-list">
             <li v-for="(r, i) in required" :key="i" class="warn-text">{{ r }}</li>
           </ul>

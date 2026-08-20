@@ -41,27 +41,27 @@ function onConfirm() {
   <div class="cropper-overlay" @click.self="emit('cancel')">
     <div class="cropper-modal card">
       <div class="cropper-head">
-        <h3>裁剪头像</h3>
+        <h3>{{ $t('cropper.title') }}</h3>
         <span class="spacer"></span>
         <button class="btn ghost sm" @click="emit('cancel')">✕</button>
       </div>
       <div class="cropper-body">
         <div class="cropper-stage">
-          <img ref="imgRef" :src="src" alt="待裁剪图片" />
+          <img ref="imgRef" :src="src" :alt="$t('cropper.alt')" />
         </div>
         <div class="cropper-tools row wrap">
           <button class="btn sm" @click="zoom(0.1)">＋</button>
           <button class="btn sm" @click="zoom(-0.1)">－</button>
-          <button class="btn sm" @click="rotate(-90)" title="逆时针旋转">⟲</button>
-          <button class="btn sm" @click="rotate(90)" title="顺时针旋转">⟳</button>
-          <button class="btn sm" @click="reset" title="重置">重置</button>
-          <span class="hint small">滚轮缩放 · 拖动裁剪框/图片</span>
+          <button class="btn sm" @click="rotate(-90)" :title="$t('cropper.rotateCCW')">⟲</button>
+          <button class="btn sm" @click="rotate(90)" :title="$t('cropper.rotateCW')">⟳</button>
+          <button class="btn sm" @click="reset" :title="$t('cropper.reset')">{{ $t('cropper.reset') }}</button>
+          <span class="hint small">{{ $t('cropper.hint') }}</span>
         </div>
       </div>
       <div class="cropper-foot row">
-        <button class="btn" @click="emit('cancel')">取消</button>
+        <button class="btn" @click="emit('cancel')">{{ $t('cropper.cancel') }}</button>
         <span class="spacer"></span>
-        <button class="btn primary" @click="onConfirm">确认</button>
+        <button class="btn primary" @click="onConfirm">{{ $t('cropper.confirm') }}</button>
       </div>
     </div>
   </div>
