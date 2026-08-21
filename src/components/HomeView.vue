@@ -59,7 +59,7 @@ function onFileChange(e) {
       const data = JSON.parse(reader.result);
       emit('import', data);
     } catch (err) {
-      alert(t$t('home.jsonError'));
+      alert(t('home.jsonError'));
     }
   };
   reader.readAsText(file);
@@ -77,7 +77,7 @@ function applySaiko() {
     saikoOpen.value = false;
     emit('import', char);
   } catch (err) {
-    saikoError.value = t$t('home.saikoError');
+    saikoError.value = t('home.saikoError');
   }
 }
 
@@ -89,7 +89,7 @@ function toggleMode(c) {
 }
 function delCard(id) {
   const c = roster.value.find(x => x.id === id);
-  const msg = t$t('home.confirmDelete', { name: c ? c.name : '' });
+  const msg = t('home.confirmDelete', { name: c ? c.name : '' });
   if (!confirm(msg)) return;
   deleteInvestigator(id);
   refresh();
@@ -127,7 +127,7 @@ function onRosterFileChange(e) {
   reader.onload = () => {
     const parsed = parseRosterExport(reader.result);
     if (!parsed || !parsed.cards.length) {
-      alert(t$t('home.rosterError'));
+      alert(t('home.rosterError'));
       return;
     }
     importList.value = parsed.cards.map(card => ({
@@ -153,7 +153,7 @@ function doImport() {
   const n = importInvestigators(cards);
   importOpen.value = false;
   refresh();
-  alert(t$t('home.importSuccess', { n }));
+  alert(t('home.importSuccess', { n }));
 }
 </script>
 
