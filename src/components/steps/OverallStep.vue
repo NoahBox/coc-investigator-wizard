@@ -10,6 +10,7 @@ import { getEra } from '../../data/eras.js';
 import { downloadJSON, copySt, downloadSt, exportImages, exportPDFPages, downloadText } from '../../export.js';
 import { exportSaikoBase64 } from '../../saiko.js';
 import { exportFVTT } from '../../fvtt.js';
+import { exportDhole } from '../../dhole.js';
 import { t, dataName, dataNameWithTag, skillLabel, flavorText, locale } from '../../i18n.js';
 import { eraDiceTables } from '../../data/eras.js';
 import { exportShareLink } from '../../share.js';
@@ -143,6 +144,13 @@ async function doFVTT() {
   busy.value = t('overall.copiedFvtt');
   setTimeout(() => { if (busy.value === t('overall.copiedFvtt')) busy.value = ''; }, 2000);
 }
+async function doDhole() {
+  const json = await exportDhole();
+  try { await navigator.clipboard.writeText(json); } catch (e) { /* ignore */ }
+  downloadText(`${character.name || 'investigator'}.dhole.json`, json);
+  busy.value = t('overall.copiedDhole');
+  setTimeout(() => { if (busy.value === t('overall.copiedDhole')) busy.value = ''; }, 2000);
+}
 async function doShare() {
   const link = exportShareLink();
   try { await navigator.clipboard.writeText(link); } catch (e) { /* ignore */ }
@@ -163,6 +171,7 @@ async function doShare() {
         <button class="btn" @click="doSt"><font-awesome-icon icon="fa-solid fa-dice" />{{ $t('overall.st') }}</button>
         <button class="btn" @click="doSaikoBase64"><font-awesome-icon icon="fa-solid fa-file-zipper" />{{ $t('overall.saiko') }}</button>
         <button class="btn" @click="doFVTT"><font-awesome-icon icon="fa-solid fa-dragon" />{{ $t('overall.fvtt') }}</button>
+        <button class="btn" @click="doDhole"><font-awesome-icon icon="fa-brands fa-octopus-deploy" />{{ $t('overall.dhole') }}</button>
         <button class="btn" @click="doShare" :title="$t('overall.shareTitle')"><font-awesome-icon icon="fa-solid fa-share-nodes" />{{ $t('overall.share') }}</button>
         <span v-if="busy" class="small accent pulse">{{ busy }}</span>
       </div>

@@ -263,10 +263,10 @@ export default {
   },
   overall: {
     exportAs: 'エクスポート',
-    image: '画像', pdf: 'PDF', json: 'JSON', st: 'ダイスボット', saiko: 'Saiko Base64', fvtt: 'FVTT', share: '共有リンク',
+    image: '画像', pdf: 'PDF', json: 'JSON', st: 'ダイスボット', saiko: 'TRPG Saiko', fvtt: 'FVTT', dhole: 'Dhole', share: '共有リンク',
     shareTitle: 'キャラクターデータ付き共有リンクを生成（アバターなし）。受け取った側は直接インポートできます',
     busyImage: '画像を生成中…', busyPdf: 'PDF を生成中…',
-    copiedSaiko: 'Saiko Base64 をコピーしました', copiedFvtt: 'FVTT キャラクター JSON をコピーしました', copiedShare: '共有リンクをコピーしました',
+    copiedSaiko: 'Saiko Base64 をコピーしました', copiedFvtt: 'FVTT キャラクター JSON をコピーしました', copiedDhole: 'Dhole キャラクター JSON をコピーしました', copiedShare: '共有リンクをコピーしました',
     inv: '探索者', invSub: 'Investigator',
     name: '名前', player: 'プレイヤー', era: '時代', faction: '派閥', job: '職業', gender: '性別',
     age: '年齢', country: '国籍', residence: '現住所', hometown: '出身地',

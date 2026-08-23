@@ -263,10 +263,10 @@ export default {
   },
   overall: {
     exportAs: 'Export as',
-    image: 'Image', pdf: 'PDF', json: 'JSON', st: 'Dice bot', saiko: 'Saiko Base64', fvtt: 'FVTT', share: 'Share link',
+    image: 'Image', pdf: 'PDF', json: 'JSON', st: 'Dice bot', saiko: 'TRPG Saiko', fvtt: 'FVTT', dhole: 'Dhole', share: 'Share link',
     shareTitle: 'Generate a share link with the character data (no avatar); recipients can import it directly',
     busyImage: 'Generating image…', busyPdf: 'Generating PDF…',
-    copiedSaiko: 'Saiko Base64 copied', copiedFvtt: 'FVTT character JSON copied', copiedShare: 'Share link copied',
+    copiedSaiko: 'Saiko Base64 copied', copiedFvtt: 'FVTT character JSON copied', copiedDhole: 'Dhole character JSON copied', copiedShare: 'Share link copied',
     inv: 'Investigator', invSub: 'Investigator',
     name: 'Name', player: 'Player', era: 'Era', faction: 'Faction', job: 'Occupation', gender: 'Gender',
     age: 'Age', country: 'Country', residence: 'Residence', hometown: 'Birthplace',
