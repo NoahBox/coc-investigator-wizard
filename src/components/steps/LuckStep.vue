@@ -101,7 +101,7 @@ function restoreLuckAttr(k) {
           <div class="row mb-8">
             <h3>{{ $t('luck.physTitle') }}</h3>
             <span class="spacer"></span>
-            <span class="small">{{ $t('luck.physNeed', { total: physTotal, remain: physRemaining }) }}</span>
+            <span class="small" v-html="$t('luck.physNeed', { total: physTotal, remain: physRemaining })"></span>
           </div>
           <div class="pkg-attrs">
             <div v-for="k in physAllowed" :key="k" class="pkg-attr row">

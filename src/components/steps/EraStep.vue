@@ -159,7 +159,7 @@ function selectNoShield() {
 
           <div v-if="currentRoll" class="dice-result">
             <span>
-              {{ $t('era.result', { dice: currentRoll.dice, text: $dn(currentRoll.entry.text) }) }}
+              <span v-html="$t('era.result', { dice: currentRoll.dice, text: $dn(currentRoll.entry.text) })"></span>
               <span class="small dim">{{ $t('era.applied', { s: effectSummary(currentRoll.entry) }) }}</span>
             </span>
             <button class="btn sm ghost danger" @click="clearEraDice">{{ $t('era.clear') }}</button>
@@ -204,7 +204,7 @@ function selectNoShield() {
           <label class="lbl">{{ $t('era.baseAdjust') }}</label>
           <ul class="feat-list">
             <li v-for="(v, name) in baseAdjust" :key="name">
-              {{ $t('era.baseAdjustVal', { name: $dn(name), v: v }) }}
+              <span v-html="$t('era.baseAdjustVal', { name: $dn(name), v: v })"></span>
             </li>
           </ul>
         </div>

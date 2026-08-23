@@ -118,10 +118,10 @@ const skillPointsFor = (name, child) => {
         <div class="card-body">
           <ul class="effects">
             <li v-if="currentPackage.sanLoss">
-              {{ $t('package.sanLoss', { now: character.packageRolls.sanLoss, dice: currentPackage.sanLoss }) }}
+              <span v-html="$t('package.sanLoss', { now: character.packageRolls.sanLoss, dice: currentPackage.sanLoss })"></span>
             </li>
             <li v-if="currentPackage.mythos">
-              {{ $t('package.mythos', { now: character.packageRolls.mythos, dice: currentPackage.mythosDice }) }}
+              <span v-html="$t('package.mythos', { now: character.packageRolls.mythos, dice: currentPackage.mythosDice })"></span>
             </li>
             <li v-if="currentPackage.skillsNote">{{ $t('package.skillGain', { n: currentPackage.skillPoints, note: $ft(currentPackage.skillsNote) }) }}</li>
             <li>{{ $t('package.backgroundAdd', { list: currentPackage.requiredBackgrounds.map(r => $ft(r)).join('；') }) }}</li>

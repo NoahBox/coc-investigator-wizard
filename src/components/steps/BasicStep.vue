@@ -207,7 +207,7 @@ function removeAvatar() {
       <div class="card-title"><h2>{{ $t('basic.occupation') }}</h2><span class="sub">{{ $t('basic.occupationSub') }}</span></div>
       <div class="card-body">
         <div v-if="isIcelandFree" class="hint mt-8">
-          {{ $t('basic.icelandFree') }}
+          <span v-html="$t('basic.icelandFree')"></span>
         </div>
         <template v-else>
         <div class="job-head">

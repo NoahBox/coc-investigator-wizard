@@ -8,9 +8,11 @@ import { dataName, t } from '../i18n.js';
 
 const emit = defineEmits(['new', 'import', 'load']);
 const fileInput = ref(null);
-const saikoOpen = ref(false);
+const importSourceOpen = ref(false);
+const importFormat = ref('json'); // 'json' | 'saiko'
+const jsonText = ref('');
 const saikoText = ref('');
-const saikoError = ref('');
+const importError = ref('');
 const roster = ref([]);
 
 // ---- 花名册 搜索 / 时代筛选 / 视图切换 ----
@@ -55,29 +57,37 @@ function onFileChange(e) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      emit('import', data);
-    } catch (err) {
-      alert(t('home.jsonError'));
-    }
+    importFormat.value = 'json';
+    jsonText.value = reader.result || ''; // 文件内容填入文本框，由用户点「导入」时解析
   };
   reader.readAsText(file);
   e.target.value = '';
 }
 
-function openSaiko() {
+// 打开「导入方式」弹窗（合并原「导入 JSON」与「导入 Saiko Base64」）
+function openImportSource() {
+  importFormat.value = 'json';
+  jsonText.value = '';
   saikoText.value = '';
-  saikoError.value = '';
-  saikoOpen.value = true;
+  importError.value = '';
+  importSourceOpen.value = true;
 }
-function applySaiko() {
+function applyImport() {
+  importError.value = '';
   try {
-    const char = importSaikoBase64(saikoText.value);
-    saikoOpen.value = false;
-    emit('import', char);
+    if (importFormat.value === 'saiko') {
+      const char = importSaikoBase64(saikoText.value);
+      importSourceOpen.value = false;
+      emit('import', char);
+    } else {
+      const data = JSON.parse(jsonText.value.trim());
+      importSourceOpen.value = false;
+      emit('import', data);
+    }
   } catch (err) {
-    saikoError.value = t('home.saikoError');
+    importError.value = importFormat.value === 'saiko'
+      ? t('home.saikoError')
+      : t('home.jsonError');
   }
 }
 
@@ -176,15 +186,10 @@ function doImport() {
         <span class="opt-title">{{ $t('home.newTitle') }}</span>
         <span class="opt-desc dim small">{{ $t('home.newDesc') }}</span>
       </button>
-      <button class="opt-card card" @click="onPickFile">
+      <button class="opt-card card" @click="openImportSource">
         <span class="opt-icon"><font-awesome-icon icon="fa-solid fa-arrow-up-from-bracket" /></span>
         <span class="opt-title">{{ $t('home.importTitle') }}</span>
         <span class="opt-desc dim small">{{ $t('home.importDesc') }}</span>
-      </button>
-      <button class="opt-card card" @click="openSaiko">
-        <span class="opt-icon"><font-awesome-icon icon="fa-solid fa-left-right" /></span>
-        <span class="opt-title">{{ $t('home.saikoTitle') }}</span>
-        <span class="opt-desc dim small">{{ $t('home.saikoDesc') }}</span>
       </button>
     </div>
 
@@ -346,23 +351,52 @@ function doImport() {
       </div>
     </div>
 
-    <!-- Saiko Base64 导入对话框 -->
-    <div v-if="saikoOpen" class="overlay" @click.self="saikoOpen = false">
+    <!-- 导入方式选择弹窗（合并 JSON 与 Saiko Base64 导入） -->
+    <div v-if="importSourceOpen" class="overlay" @click.self="importSourceOpen = false">
       <div class="modal card">
         <div class="modal-head">
-          <h3>{{ $t('home.saikoModal') }}</h3>
+          <h3>{{ $t('home.importSourceTitle') }}</h3>
           <span class="spacer"></span>
-          <button class="btn ghost sm" @click="saikoOpen = false">✕</button>
+          <button class="btn ghost sm" @click="importSourceOpen = false">✕</button>
         </div>
         <div class="modal-body">
-          <p class="hint mb-8">{{ $t('home.saikoHint') }}</p>
-          <textarea class="inp" rows="10" v-model="saikoText" :placeholder="$t('home.saikoPh')"></textarea>
-          <p v-if="saikoError" class="warn-text mt-8">{{ saikoError }}</p>
+          <!-- 来源格式选择 -->
+          <div class="fmt-row">
+            <button class="fmt-btn" :class="{ active: importFormat === 'json' }" @click="importFormat = 'json'">
+              <font-awesome-icon icon="fa-solid fa-file-code" />
+              <span>{{ $t('home.fmtJson') }}</span>
+            </button>
+            <button class="fmt-btn" :class="{ active: importFormat === 'saiko' }" @click="importFormat = 'saiko'">
+              <font-awesome-icon icon="fa-solid fa-left-right" />
+              <span>{{ $t('home.fmtSaiko') }}</span>
+            </button>
+          </div>
+
+          <!-- JSON 导入：本地文件 或 粘贴文本 -->
+          <div v-if="importFormat === 'json'" class="fmt-body">
+            <button class="btn ghost sm mb-8" @click="onPickFile">
+              <font-awesome-icon icon="fa-solid fa-folder-open" /> {{ $t('home.pickFile') }}
+            </button>
+            <p class="hint mb-8">{{ $t('home.orPaste') }}</p>
+            <textarea class="inp" rows="10" v-model="jsonText" :placeholder="$t('home.jsonPh')"></textarea>
+          </div>
+
+          <!-- Saiko Base64 导入 -->
+          <div v-else class="fmt-body">
+            <p class="hint mb-8">{{ $t('home.saikoHint') }}</p>
+            <textarea class="inp" rows="10" v-model="saikoText" :placeholder="$t('home.saikoPh')"></textarea>
+          </div>
+
+          <p v-if="importError" class="warn-text mt-8">{{ importError }}</p>
         </div>
         <div class="modal-foot row">
-          <button class="btn" @click="saikoOpen = false">{{ $t('common.cancel') }}</button>
+          <button class="btn" @click="importSourceOpen = false">{{ $t('common.cancel') }}</button>
           <span class="spacer"></span>
-          <button class="btn primary" :disabled="!saikoText.trim()" @click="applySaiko">{{ $t('home.import') }}</button>
+          <button
+            class="btn primary"
+            :disabled="importFormat === 'json' ? !jsonText.trim() : !saikoText.trim()"
+            @click="applyImport"
+          >{{ $t('home.import') }}</button>
         </div>
       </div>
     </div>
@@ -379,7 +413,7 @@ function doImport() {
 }
 .hero-sub { color: var(--gold); letter-spacing: 0.22em; font-size: 0.8rem; margin: 10px 0 10px; }
 .hero-desc { max-width: 560px; margin: 0 auto; line-height: 1.8; }
-.options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 560px; margin: 0 auto; }
 .opt-card {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 24px; cursor: pointer; text-align: center;
@@ -459,4 +493,18 @@ function doImport() {
 .pick-item label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .pi-name { font-family: Georgia, serif; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pi-meta { margin-left: auto; flex: none; }
+
+/* 导入方式选择弹窗 */
+.fmt-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.fmt-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px; cursor: pointer; text-align: center;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+  color: var(--text-dim); transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.fmt-btn svg { font-size: 1.7rem; }
+.fmt-btn:hover { border-color: var(--accent); color: var(--text); }
+.fmt-btn.active { border-color: var(--accent); color: var(--text); background: var(--accent-dim); }
+.fmt-btn span { font-family: Georgia, serif; font-size: 1.05rem; letter-spacing: 0.04em; }
+.fmt-body { display: flex; flex-direction: column; }
 </style>
