@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { importSaikoBase64 } from '../saiko.js';
+import { fromDhole, isDholeData } from '../dhole.js';
 import { listInvestigators, deleteInvestigator, duplicateInvestigator, setInvestigatorImported, buildRosterExport, parseRosterExport, importInvestigators } from '../store.js';
 import { downloadRosterBackup } from '../export.js';
 import { getEra } from '../data/eras.js';
@@ -13,7 +14,22 @@ const importFormat = ref('json'); // 'json' | 'saiko'
 const jsonText = ref('');
 const saikoText = ref('');
 const importError = ref('');
+// 文本框自动调整高度：内容多则增高，内容少则压缩（不出现多余空白）
+const jsonTa = ref(null);
+const saikoTa = ref(null);
+function autoResize(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const max = 320;
+  el.style.height = Math.min(el.scrollHeight, max) + 'px';
+}
+watch(importFormat, () => nextTick(() => autoResize(importFormat.value === 'json' ? jsonTa.value : saikoTa.value)));
+watch(importSourceOpen, (v) => { if (v) nextTick(() => autoResize(importFormat.value === 'json' ? jsonTa.value : saikoTa.value)); });
 const roster = ref([]);
+
+// ---- 关于弹窗 ----
+const aboutOpen = ref(false);
+const aboutTab = ref('info'); // 'info' | 'history'
 
 // ---- 花名册 搜索 / 时代筛选 / 视图切换 ----
 const VIEW_KEY = 'coc-wizard-roster-view';
@@ -59,6 +75,7 @@ function onFileChange(e) {
   reader.onload = () => {
     importFormat.value = 'json';
     jsonText.value = reader.result || ''; // 文件内容填入文本框，由用户点「导入」时解析
+    nextTick(() => autoResize(jsonTa.value));
   };
   reader.readAsText(file);
   e.target.value = '';
@@ -81,8 +98,11 @@ function applyImport() {
       emit('import', char);
     } else {
       const data = JSON.parse(jsonText.value.trim());
+      // Dhole's House 角色卡：先逆转换为项目内部 character
+      const char = isDholeData(data) ? fromDhole(data) : data;
+      if (!char) { importError.value = t('home.jsonError'); return; }
       importSourceOpen.value = false;
-      emit('import', data);
+      emit('import', char);
     }
   } catch (err) {
     importError.value = importFormat.value === 'saiko'
@@ -191,6 +211,11 @@ function doImport() {
         <span class="opt-title">{{ $t('home.importTitle') }}</span>
         <span class="opt-desc dim small">{{ $t('home.importDesc') }}</span>
       </button>
+      <button class="opt-card card" @click="aboutOpen = true">
+        <span class="opt-icon"><font-awesome-icon icon="fa-solid fa-circle-info" /></span>
+        <span class="opt-title">{{ $t('home.about') }}</span>
+        <span class="opt-desc dim small">{{ $t('home.aboutDesc') }}</span>
+      </button>
     </div>
 
     <input ref="fileInput" type="file" accept="application/json,.json" style="display:none" @change="onFileChange" />
@@ -219,10 +244,10 @@ function doImport() {
         <span class="dim small count">{{ filtered.length }}/{{ roster.length }}</span>
         <span class="spacer"></span>
         <button class="btn ghost sm" :disabled="roster.length === 0" :title="$t('home.exportBtn')" @click="openExport">
-          <font-awesome-icon icon="fa-solid fa-file-export" />
+          <font-awesome-icon icon="fa-solid fa-file-export" /> {{ $t('home.export') }}
         </button>
         <button class="btn ghost sm" :title="$t('home.importBtn')" @click="onPickRosterFile">
-          <font-awesome-icon icon="fa-solid fa-file-import" />
+          <font-awesome-icon icon="fa-solid fa-file-import" /> {{ $t('home.import') }}
         </button>
       </div>
       <input ref="rosterFile" type="file" accept="application/json,.json,.coc.json" style="display:none" @change="onRosterFileChange" />
@@ -296,6 +321,7 @@ function doImport() {
     </section>
 
     <!-- 导出调查员 -->
+    <Teleport to="body">
     <div v-if="exportOpen" class="overlay" @click.self="exportOpen = false">
       <div class="modal card">
         <div class="modal-head">
@@ -322,8 +348,10 @@ function doImport() {
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- 导入调查员 -->
+    <Teleport to="body">
     <div v-if="importOpen" class="overlay" @click.self="importOpen = false">
       <div class="modal card">
         <div class="modal-head">
@@ -350,10 +378,12 @@ function doImport() {
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- 导入方式选择弹窗（合并 JSON 与 Saiko Base64 导入） -->
+    <Teleport to="body">
     <div v-if="importSourceOpen" class="overlay" @click.self="importSourceOpen = false">
-      <div class="modal card">
+      <div class="modal card import-source-modal">
         <div class="modal-head">
           <h3>{{ $t('home.importSourceTitle') }}</h3>
           <span class="spacer"></span>
@@ -363,7 +393,7 @@ function doImport() {
           <!-- 来源格式选择 -->
           <div class="fmt-row">
             <button class="fmt-btn" :class="{ active: importFormat === 'json' }" @click="importFormat = 'json'">
-              <font-awesome-icon icon="fa-solid fa-file-code" />
+              <font-awesome-icon icon="fa-solid fa-file-lines" />
               <span>{{ $t('home.fmtJson') }}</span>
             </button>
             <button class="fmt-btn" :class="{ active: importFormat === 'saiko' }" @click="importFormat = 'saiko'">
@@ -378,13 +408,13 @@ function doImport() {
               <font-awesome-icon icon="fa-solid fa-folder-open" /> {{ $t('home.pickFile') }}
             </button>
             <p class="hint mb-8">{{ $t('home.orPaste') }}</p>
-            <textarea class="inp" rows="10" v-model="jsonText" :placeholder="$t('home.jsonPh')"></textarea>
+            <textarea ref="jsonTa" class="inp ta-auto" v-model="jsonText" :placeholder="$t('home.jsonPh')" @input="autoResize($event.target)"></textarea>
           </div>
 
           <!-- Saiko Base64 导入 -->
           <div v-else class="fmt-body">
             <p class="hint mb-8">{{ $t('home.saikoHint') }}</p>
-            <textarea class="inp" rows="10" v-model="saikoText" :placeholder="$t('home.saikoPh')"></textarea>
+            <textarea ref="saikoTa" class="inp ta-auto" v-model="saikoText" :placeholder="$t('home.saikoPh')" @input="autoResize($event.target)"></textarea>
           </div>
 
           <p v-if="importError" class="warn-text mt-8">{{ importError }}</p>
@@ -400,6 +430,97 @@ function doImport() {
         </div>
       </div>
     </div>
+    </Teleport>
+
+    <!-- 关于 -->
+    <Teleport to="body">
+    <div v-if="aboutOpen" class="overlay" @click.self="aboutOpen = false">
+      <div class="modal card about-modal">
+        <div class="modal-head">
+          <h3>{{ $t('home.aboutTitle') }}</h3>
+          <span class="spacer"></span>
+          <button class="btn ghost sm" @click="aboutOpen = false">✕</button>
+        </div>
+        <div class="about-tabs">
+          <button class="about-tab" :class="{ active: aboutTab === 'info' }" @click="aboutTab = 'info'">{{ $t('home.aboutTabInfo') }}</button>
+          <button class="about-tab" :class="{ active: aboutTab === 'history' }" @click="aboutTab = 'history'">{{ $t('home.aboutTabHistory') }}</button>
+        </div>
+        <div class="modal-body about-body">
+          <!-- 信息 -->
+          <div v-show="aboutTab === 'info'" class="about-info">
+            <div class="about-row">
+              <span class="about-key">{{ $t('home.aboutAuthor') }}</span>
+              <span class="about-val">Master Noah · <a href="https://noahbox.github.io" target="_blank" rel="noopener">https://noahbox.github.io</a></span>
+            </div>
+            <div class="about-row">
+              <span class="about-key">{{ $t('home.aboutAck') }}</span>
+              <span class="about-val">TRPG赛高、Dhole's House</span>
+            </div>
+            <div class="about-row">
+              <span class="about-key">{{ $t('home.aboutCopyright') }}</span>
+              <span class="about-val">Call of Cthulhu (c) Chaosium、Archlight</span>
+            </div>
+          </div>
+          <!-- 更新历史 -->
+          <div v-show="aboutTab === 'history'" class="about-history">
+            <div class="changelog">
+              <h4>v1.0.8 · 26-08-23</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：支持导入 Dhole's House 的角色卡 Json 文件</li>
+                <li><b>Bug 修复</b>：修复“部分有显示条件的 html 格式标签没有正确渲染”的问题；修复“调查员背景页面随机事件错误绑定到整个标题行”的问题</li>
+                <li><b>体验优化</b>：为调查员花名册的导入/导出按钮添加文字标识；修改了导入调查员的按钮和界面；修改了导出调查员角色卡时的逻辑（除“分享链接”和“骰娘设定”之外的所有导出只会下载文件，不会复制到剪贴板；“分享链接”和“骰娘设定”只会复制到剪贴板，不会下载文件）</li>
+              </ul>
+              <h4>v1.0.7 · 26-08-23</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：支持导出到 Dhole's House 兼容的角色卡 Json</li>
+                <li><b>体验优化</b>：调整部分文字表述和 i18n</li>
+              </ul>
+              <h4>v1.0.6b · 26-08-21</h4>
+              <ul class="cl">
+                <li><b>Bug 修复</b>：修复“调查员花名册中，删除按钮无法正常工作”的问题</li>
+              </ul>
+              <h4>v1.0.6 · 26-08-20</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：支持导出到 FVTT COC7E 系统支持的角色卡 Json；支持分享调查员角色卡链接，快速导入角色卡；添加掷骰 &amp; 检定面板；添加对日语和英语的 i18n 支持</li>
+                <li><b>体验优化</b>：为调查员花名册添加头像显示和表格视图并优化了信息显示；优化角色卡总览页面的布局</li>
+              </ul>
+              <h4>v1.0.5 · 26-08-19</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：支持《克苏鲁时空穿梭（Cthulhu Through the Ages）》扩展（示例职业、时代特殊技能及技能初始值调整、不同时代的背景随机表与特性、不同时代的资产描述）；添加背景故事中的随机表支持</li>
+                <li><b>体验优化</b>：优化角色卡总览页面与属性分配页面的布局；优化信用评级技能；优化幕间成长页面的按钮样式；优化界面布局</li>
+                <li><b>Bug 修复</b>：修复“信用评级和克苏鲁神话技能默认值为 null”的问题；修复“可自定义技能在幕间成长时重复出现”的问题；修复“购点模式下，属性卡片可能过窄”的问题；修复“基础信息中，自定义国家无法正常输入”的问题</li>
+              </ul>
+              <h4>v1.0.4 · 26-08-19</h4>
+              <ul class="cl">
+                <li><b>体验优化</b>：修改自定义职业时自定义本职技能点公式的编辑方式；优化有子类别的技能的添加和删除样式；优化布局对页面宽度的自适应；优化窄屏幕设备的布局展示；为调查员花名册添加角色卡创建模式和更新模式的切换按钮；优化界面布局</li>
+                <li><b>Bug 修复</b>：修复“年龄调整时，属性点降低会导致购点的属性点返还”的问题；修复“年龄调整时，属性点降低的数值异常”的问题</li>
+              </ul>
+              <h4>v1.0.3 · 26-08-18</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：调查员花名册，支持存储、导入、导出调查员角色卡数据</li>
+                <li><b>体验优化</b>：修改了部分图标元素，统一使用 FontAwesome Icon；使用 lz-string 压缩调查员角色卡数据，增加可存储的数据上限；优化界面布局</li>
+              </ul>
+              <h4>v1.0.2 · 26-08-18</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：COC 日本扩展和《纸浆克苏鲁》中的扩展职业</li>
+                <li><b>体验优化</b>：在技能点分配界面将调查员经验包提供的技能调整显示在成长栏中；优化调查员头像编辑弹窗；优化界面布局</li>
+                <li><b>Bug 修复</b>：修复“调查员经验包中的技能和属性调整无效”的问题</li>
+              </ul>
+              <h4>v1.0.1 · 26-08-17</h4>
+              <ul class="cl">
+                <li><b>增加功能</b>：老卡模式；自定义武器；自定义技能</li>
+                <li><b>Bug 修复</b>：修复“开启经验包后，即使将其关闭，经验包的效果依然保留”的问题</li>
+              </ul>
+              <h4>v1.0.0 · 26-08-17</h4>
+              <ul class="cl">
+                <li><b>初版发布</b></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -413,7 +534,7 @@ function doImport() {
 }
 .hero-sub { color: var(--gold); letter-spacing: 0.22em; font-size: 0.8rem; margin: 10px 0 10px; }
 .hero-desc { max-width: 560px; margin: 0 auto; line-height: 1.8; }
-.options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 560px; margin: 0 auto; }
+.options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; max-width: 820px; margin: 0 auto; }
 .opt-card {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 24px; cursor: pointer; text-align: center;
@@ -427,11 +548,38 @@ function doImport() {
 
 .overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .modal { width: 600px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* 导入方式弹窗：固定尺寸 + 视口正中 + 文本框自适应高度 */
+.import-source-modal { width: 560px; max-width: 100%; height: 460px; max-height: 90vh; }
+.import-source-modal .modal-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.import-source-modal .fmt-body { flex: 1; }
+.ta-auto { resize: none; width: 100%; min-height: 0; }
 .modal-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .modal-body { padding: 16px 18px; }
 .modal-foot { padding: 12px 18px; border-top: 1px solid var(--border); gap: 10px; }
 .spacer { flex: 1; }
 @media (max-width: 640px) { .options { grid-template-columns: 1fr; } .roster-list { grid-template-columns: 1fr; } .roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .roster-toolbar { flex-wrap: wrap; } .roster-search { max-width: none; } }
+
+/* 关于弹窗：固定尺寸 + 视口正中（与导入弹窗一致） */
+.about-modal { width: 600px; max-width: 100%; height: 560px; max-height: 90vh; }
+.about-modal .modal-body { flex: 1; overflow-y: auto; }
+.about-tabs { display: flex; gap: 4px; padding: 0 18px; border-bottom: 1px solid var(--border); }
+.about-tab {
+  background: transparent; border: none; cursor: pointer; padding: 12px 14px;
+  font-family: Georgia, serif; font-size: 1.05rem; color: var(--text-dim);
+  border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s;
+}
+.about-tab:hover { color: var(--text); }
+.about-tab.active { color: var(--accent-strong); border-bottom-color: var(--accent); }
+.about-info { display: flex; flex-direction: column; gap: 14px; }
+.about-row { display: flex; gap: 12px; line-height: 1.7; }
+.about-key { flex: none; width: 72px; color: var(--gold); font-weight: 600; }
+.about-val { flex: 1; color: var(--text); word-break: break-word; }
+.about-val a { color: var(--accent); }
+.changelog h4 { font-family: Georgia, serif; color: var(--accent-strong); margin: 16px 0 8px; letter-spacing: 0.04em; }
+.changelog h4:first-child { margin-top: 0; }
+.changelog ul.cl { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.changelog ul.cl li { line-height: 1.7; color: var(--text); }
 
 /* 我的调查员 */
 .roster { margin-top: 20px; }

@@ -87,12 +87,12 @@ function fillRandom(f) {
 
         <div class="grid-2">
           <div v-for="f in fields" :key="f.key" :class="{ 'span-2': f.key === 'desc' }">
-            <label class="lbl">
+            <div class="lbl">
               <b>{{ f.label() }}</b>
-              <button v-if="f.random" class="rand-btn" type="button" :title="t('bg.randomTitle', { label: f.label() })" @click="fillRandom(f)">
+              <button v-if="f.random" class="rand-btn" type="button" :title="t('bg.randomTitle', { label: f.label() })" @click.stop="fillRandom(f)">
                 <font-awesome-icon icon="fa-solid fa-dice" />
               </button>
-            </label>
+            </div>
             <textarea class="inp" v-model="character.background[f.key]" @input="saveCharacter" :placeholder="f.ph()" :style="f.key === 'desc' ? 'min-height:120px' : ''"></textarea>
           </div>
         </div>

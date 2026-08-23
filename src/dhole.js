@@ -21,9 +21,10 @@
 // ============================================================
 import {
   character, derived, effectiveAttr, skillValue, getAllocation,
-  splitSkillKey, makeSkillKey, isOccupationSkill,
+  splitSkillKey, makeSkillKey, isOccupationSkill, createEmptyCharacter,
 } from './store.js';
-import { getSkill, getEraSkillGroups, getEraGroupOrder, getEraSkillList } from './data/skills.js';
+import { getSkill, getEraSkill, getEraSkillGroups, getEraGroupOrder, getEraSkillList } from './data/skills.js';
+import { eraSkillBaseAdjust } from './data/eras.js';
 
 // ---- 头像 data URL 处理 ----
 // 导入器仅接受裸 base64 的 png。当角色卡头像是 jpg/jpeg/webp 等常见光栅格式时，
@@ -362,4 +363,225 @@ export function toDhole(portraitB64) {
 export async function exportDhole() {
   const portraitB64 = await convertAvatarToPng(character.avatar);
   return JSON.stringify(toDhole(portraitB64), null, 2);
+}
+
+// ============================================================
+// Dhole's House 角色卡 JSON → 本项目 character（导入逆转换）
+// 结构依据 dholehouse-importer.js 生成的导出文件（见 Noah.json 样例）：
+//   Investigator.Header / PersonalDetails / Characteristics
+//   Investigator.Skills.Skill[] / Weapons.weapon / Backstory / Possessions / Cash
+// 注意：真实 Dhole 导出里基础技能 subskill 为字符串 'None'（非空串），
+//       分组技能重复成多行（如 Art/Craft ×3），并有 Misc 占位噪声技能。
+// ============================================================
+
+function num(v) {
+  if (v == null || v === '' || v === 'None') return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+}
+function str(v) {
+  if (v == null || v === '' || v === 'None') return '';
+  return String(v);
+}
+function invert(o) {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));
+}
+
+// 英文技能名（基础 / 时代）→ 中文技能名；补入真实 Dhole 导出里的写法
+const EN_BASE_CN = {
+  ...invert(SKILL_EN),
+  ...invert(ERA_SKILL_EN),
+  'Art/Craft': '技艺', // Dhole 用斜杠写法
+  'Art and Craft': '技艺',
+  'Pilot': '驾驶',
+  'Ride': '骑术',
+};
+// 英文子技能名 → 中文子技能名
+const EN_CHILD_CN = invert(CHILD_EN);
+// 裸子技能名（如武器 skillname 的 'Brawl'/'Handgun'）→ 所属父技能英文名
+const EN_CHILD_PARENT = {
+  Brawl: 'Fighting', Sword: 'Fighting', Spear: 'Fighting', Axe: 'Fighting', Lasso: 'Fighting',
+  Chainsaw: 'Fighting', Flail: 'Fighting', Whip: 'Fighting', Shield: 'Fighting', 'Large Weapon': 'Fighting',
+  Handgun: 'Firearms', 'Rifle/Shotgun': 'Firearms', 'Submachine Gun': 'Firearms', Bow: 'Firearms',
+  'Machine Gun': 'Firearms', 'Heavy Weapons': 'Firearms', Sling: 'Firearms', 'Energy Weapons': 'Firearms',
+};
+
+// 把 Dhole 的技能名（可含 "Name (Sub)" 或裸子技能名）+ subskill 转成本项目技能键
+function dholeSkillKeyToMine(rawName, subskill) {
+  if (!rawName) return '';
+  rawName = String(rawName).trim();
+  // 语言特殊处理：Language (Own) / Language (Other) 的「实际语种」在 subskill 字段
+  if (rawName === 'Language (Own)') return '母语';
+  if (rawName === 'Language (Other)') {
+    const c = (subskill && subskill !== 'None' && subskill !== '') ? (EN_CHILD_CN[subskill] || subskill) : '';
+    return c ? `外语(${c})` : '外语';
+  }
+  if (rawName === 'Language') {
+    const c = (subskill && subskill !== 'None' && subskill !== '') ? (EN_CHILD_CN[subskill] || subskill) : '';
+    return c ? `外语(${c})` : '外语';
+  }
+  // 显式 "Name (Sub)" 形式
+  const m = /^\s*([^(]+)\s*\(([^)]+)\)\s*$/.exec(rawName);
+  if (m) return dholeSkillKeyToMine(m[1].trim(), m[2].trim());
+  // 基础技能英文名
+  const baseCN = EN_BASE_CN[rawName] || rawName;
+  if (subskill && subskill !== 'None' && subskill !== '') {
+    const childCN = EN_CHILD_CN[subskill] || subskill;
+    return `${baseCN}(${childCN})`;
+  }
+  // 裸子技能名（武器 skillname：'Brawl' → 格斗(斗殴)）
+  if (EN_CHILD_PARENT[rawName]) {
+    const parentEN = EN_CHILD_PARENT[rawName];
+    const parentCN = EN_BASE_CN[parentEN] || parentEN;
+    const childCN = EN_CHILD_CN[rawName] || rawName;
+    return `${parentCN}(${childCN})`;
+  }
+  return baseCN;
+}
+
+// 与 store/skills.js 的 skillBase 等价、但接收「本地」era/attributes 的实现，
+// 避免在构建期误读全局响应式 character。
+function baseOf(name, child, attrs, era) {
+  if (name === '母语') return attrs.edu || 0;
+  if (name === '闪避') return Math.floor((attrs.dex || 0) / 2);
+  if (name === '本地知识') return Math.floor((attrs.int || 0) / 2);
+  if (name === '造梦') return Math.floor((attrs.pow || 0) / 5);
+  const eraAdj = eraSkillBaseAdjust[era]?.[name];
+  if (eraAdj != null) return eraAdj;
+  const sk = getSkill(name) || getEraSkill(name);
+  if (!sk) return 0;
+  if (child && sk.group) {
+    const c = sk.group.skills.find(s => s.name === child);
+    return c && c.init != null ? c.init : sk.init;
+  }
+  return sk.init || 0;
+}
+
+// 探测是否为 Dhole's House 导出
+export function isDholeData(data) {
+  return !!(data && data.Investigator && data.Investigator.PersonalDetails);
+}
+
+// Dhole's House 角色卡 JSON → 本项目 character
+export function fromDhole(data) {
+  const inv = data?.Investigator;
+  if (!inv) return null;
+  const char = createEmptyCharacter();
+
+  const pd = inv.PersonalDetails || {};
+  const ch = inv.Characteristics || {};
+  const hdr = inv.Header || {};
+  const attrsIn = { STR: 'str', CON: 'con', DEX: 'dex', APP: 'app', INT: 'int', POW: 'pow', SIZ: 'siz', EDU: 'edu', Luck: 'luc' };
+  Object.entries(attrsIn).forEach(([en, k]) => { char.attributes[k] = num(ch[en]); });
+
+  // 时代：优先 Header.GameType
+  const gt = hdr.GameType || '';
+  char.era = gt === '1920s' || gt === '1920' ? '1920s'
+    : (gt === 'Modern' ? 'modern' : char.era);
+
+  // 个人资料
+  char.name = str(pd.Name);
+  char.age = str(pd.Age);
+  char.hometown = str(pd.Birthplace);
+  char.residence = str(pd.Residence);
+  if (pd.Gender === 'Male') char.gender = '男';
+  else if (pd.Gender === 'Female') char.gender = '女';
+  else if (pd.Gender) { char.gender = '其他'; char.genderOther = str(pd.Gender); }
+
+  // 头像：Dhole 存裸 base64 png
+  if (pd.Portrait) char.avatar = PNG_PREFIX + pd.Portrait;
+
+  // 衍生（hp/mp/san 直接覆盖）
+  const ov = char.derivedOverrides;
+  ov.hp = num(ch.HitPts); ov.hpMax = num(ch.HitPtsMax);
+  ov.mp = num(ch.MagicPts); ov.mpMax = num(ch.MagicPtsMax);
+  ov.san = num(ch.Sanity); ov.sanMax = num(ch.SanityMax);
+
+  // 职业：Dhole 用英文职业名，本项目多为中文预设，故以自定义职业承接
+  const occ = str(pd.Occupation);
+  char.jobType = 'custom';
+  char.customJobName = occ;
+
+  // ---- 技能 ----
+  const skills = Array.isArray(inv.Skills?.Skill) ? inv.Skills.Skill : [];
+  const merged = {};        // 技能键 → 最大 value（去重合并重复行）
+  const occSet = new Set(); // 本职技能键集合
+  skills.forEach((s) => {
+    if (!s || !s.name) return;
+    if (s.name === 'Misc') return; // Dhole 占位噪声技能
+    const key = dholeSkillKeyToMine(s.name, s.subskill);
+    if (!key) return;
+    const v = num(s.value) || 0;
+    if (!(key in merged) || v > merged[key]) merged[key] = v;
+    const isOcc = s.occupation === true || s.occupation === 'true';
+    if (isOcc) occSet.add(key);
+  });
+
+  // 自定义职业的「本职技能列表」= 导入中标记为 occupation 的技能键
+  char.customSkills = [...occSet];
+
+  // 分配点数：最终值 − 基础值，职业技入 pro、其余入 interest
+  const attrs = char.attributes;
+  Object.keys(merged).forEach((key) => {
+    const { name, child } = splitSkillKey(key);
+    const base = baseOf(name, child, attrs, char.era);
+    const delta = Math.max(0, (merged[key] || 0) - base);
+    const isOcc = occSet.has(key);
+    char.allocations[key] = isOcc
+      ? { pro: delta, interest: 0, growth: 0, package: 0 }
+      : { pro: 0, interest: delta, growth: 0, package: 0 };
+    // 分组子技能顺序
+    if (child) {
+      if (!char.groupedOrder[name]) char.groupedOrder[name] = [];
+      if (!char.groupedOrder[name].includes(child)) char.groupedOrder[name].push(child);
+    }
+  });
+
+  // ---- 武器 ----
+  const w = inv.Weapons?.weapon;
+  const wlist = !w ? [] : (Array.isArray(w) ? w : [w]);
+  char.weapons = wlist
+    .filter((x) => x && x.name)
+    .map((x) => ({
+      name: str(x.name),
+      skill: dholeSkillKeyToMine(x.skillname, null),
+      dam: str(x.damage),
+      num: (x.ammo && x.ammo !== '-') ? str(x.ammo) : '',
+      err: (x.malf && x.malf !== '-') ? str(x.malf) : '',
+    }));
+
+  // ---- 背景 ----
+  const bg = inv.Backstory || {};
+  const splitRows = (s) => (s && s !== 'None'
+    ? String(s).split(',').map((t) => t.trim()).filter(Boolean).map((n) => ({ name: n }))
+    : []);
+  char.background = {
+    app: '', belief: str(bg.ideology), importantPerson: str(bg.people), place: str(bg.locations),
+    item: '', trait: str(bg.traits), scar: str(bg.injurues), mad: str(bg.phobias), desc: str(bg.description),
+  };
+  char.items = splitRows(bg.possessions);
+  char.mythosItems = splitRows(bg.tomes);
+  char.contacts = splitRows(bg.encounters);
+
+  // 顶层 Possessions（item 列表）→ 物品
+  const poss = inv.Possessions;
+  if (poss && poss.item) {
+    const items = (Array.isArray(poss.item) ? poss.item : [poss.item])
+      .map((i) => (i && (i.description || i.name)) || null)
+      .filter(Boolean);
+    char.items = char.items.concat(items.map((n) => ({ name: String(n) })));
+  }
+
+  // 现金 / 资产
+  if (inv.Cash) {
+    const c = inv.Cash;
+    const rows = [];
+    if (c.spending) rows.push({ name: `日常开销 ${c.spending}` });
+    if (c.cash) rows.push({ name: `现金 ${c.cash}` });
+    if (c.assets) rows.push({ name: `资产 ${c.assets}` });
+    char.assetsRows = rows;
+  }
+
+  char.imported = true;
+  return char;
 }
